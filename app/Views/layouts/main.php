@@ -18,25 +18,6 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
-  $(function(){
-    toastr.options = {
-      closeButton: true,
-      debug: false,
-      newestOnTop: false,
-      progressBar: true,
-      positionClass: "toast-top-right",
-      preventDuplicates: true,
-      showDuration: "300",
-      hideDuration: "500",
-      timeOut: "3000",
-      extendedTimeOut: "1000",
-      showEasing: "swing",
-      hideEasing: "linear",
-      showMethod: "fadeIn",
-      hideMethod: "fadeOut"
-    };
-  });
-</script>
+
 </body>
 </html>

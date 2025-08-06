@@ -80,7 +80,7 @@ add_shortcode( 'smart_hair_calculator', function() {
 // ================= STEP 1 =================
 add_action( 'wp_ajax_shec_step1', 'shec_handle_step1' );
 add_action( 'wp_ajax_nopriv_shec_step1', 'shec_handle_step1' );
-function shec_handle_step1(){
+function shec_handle_step1() {
     check_ajax_referer('shec_nonce','_nonce');
     global $wpdb;
 
@@ -88,11 +88,21 @@ function shec_handle_step1(){
     $age        = sanitize_text_field($_POST['age']);
     $confidence = sanitize_text_field($_POST['confidence']);
 
+    // بررسی اینکه تمام داده‌ها ارسال شده‌اند
     if ( ! $gender || ! $age ) {
         wp_send_json_error(['message' => 'اطلاعات ناقص است.']);
     }
 
+    // ایجاد شناسه یکتا برای کاربر
+    $user_id = get_current_user_id(); // اگر یوزر لاگین کرده باشد، شناسه او را می‌گیرد
+    if (!$user_id) {
+        // اگر کاربر لاگین نکرده باشد، یک شناسه تصادفی عددی ایجاد کن
+        $user_id = $wpdb->get_var("SELECT MAX(id) FROM {$wpdb->prefix}shec_users") + 1; 
+    }
+    error_log("User ID: " . $user_id); // لاگ گرفتن از شناسه یکتا
+    // ذخیره اطلاعات در جدول shec_users
     $wpdb->insert( $wpdb->prefix . 'shec_users', [
+        'wp_user_id' => $user_id, // ذخیره شناسه یکتا در فیلد wp_user_id
         'data' => wp_json_encode([
             'gender'     => $gender,
             'age'        => $age,
@@ -100,34 +110,44 @@ function shec_handle_step1(){
         ])
     ] );
 
-    wp_send_json_success(['user_id' => $wpdb->insert_id]);
+    wp_send_json_success(['user_id' => $user_id]); // ارسال شناسه یکتا برای استفاده در مراحل بعد
 }
 
 // ================= STEP 2 =================
 add_action( 'wp_ajax_shec_step2', 'shec_handle_step2' );
 add_action( 'wp_ajax_nopriv_shec_step2', 'shec_handle_step2' );
-function shec_handle_step2(){
+function shec_handle_step2() {
     check_ajax_referer('shec_nonce','_nonce');
     global $wpdb;
 
-    $user_id      = intval($_POST['user_id']);
-    $loss_pattern = sanitize_text_field($_POST['loss_pattern']);
+    $user_id      = intval($_POST['user_id']); // دریافت user_id از درخواست
+    $pattern      = sanitize_text_field($_POST['loss_pattern']); // دریافت الگوی ریزش مو
 
-    if ( ! $user_id || ! $loss_pattern ) {
-        wp_send_json_error(['message' => 'اطلاعات ناقص است.']);
+    if ( $user_id <= 0 || empty( $pattern ) ) {
+        wp_send_json_error( 'اطلاعات مرحله ۲ ناقص است' );
     }
 
-    $existing = json_decode($wpdb->get_var("SELECT data FROM {$wpdb->prefix}shec_users WHERE id={$user_id}"), true);
-    $existing['loss_pattern'] = $loss_pattern;
+    // جستجوی داده‌ها با استفاده از wp_user_id (فیلد صحیح)
+    $existing = $wpdb->get_var( $wpdb->prepare(
+        "SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id = %s", $user_id
+    ));
 
+    // اگر داده‌ها وجود دارند، الگوی ریزش را اضافه کنید
+    $data = $existing ? json_decode( $existing, true ) : [];
+    $data['loss_pattern'] = $pattern;
+
+    // به‌روزرسانی داده‌ها در دیتابیس
     $wpdb->update(
         $wpdb->prefix . 'shec_users',
-        ['data' => wp_json_encode($existing)],
-        ['id'   => $user_id]
+        ['data' => wp_json_encode($data)],
+        ['wp_user_id' => $user_id], // تغییر از 'id' به 'wp_user_id'
+        ['%s'],
+        ['%s']
     );
 
     wp_send_json_success();
 }
+
 
 // ================= STEP 3 =================
 add_action( 'wp_ajax_shec_step3', 'shec_handle_step3' );
@@ -150,7 +170,7 @@ function shec_handle_step3(){
         wp_send_json_error(['message' => $uploaded['error']]);
     }
 
-    $existing = json_decode($wpdb->get_var("SELECT data FROM {$wpdb->prefix}shec_users WHERE id={$user_id}"), true);
+    $existing = json_decode($wpdb->get_var("SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id={$user_id}"), true);
     $existing['uploads'][$position] = $uploaded['url'];
 
     $wpdb->update(
@@ -175,7 +195,7 @@ function shec_handle_step4(){
     $medical_data = array_map('sanitize_text_field', $_POST);
     unset($medical_data['_nonce'], $medical_data['action'], $medical_data['user_id']);
 
-    $existing = json_decode($wpdb->get_var("SELECT data FROM {$wpdb->prefix}shec_users WHERE id={$user_id}"), true);
+    $existing = json_decode($wpdb->get_var("SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id={$user_id}"), true);
     $existing['medical'] = $medical_data;
 
     $wpdb->update(
@@ -197,33 +217,49 @@ function shec_handle_step5(){
     $user_id = intval($_POST['user_id']);
     if ( ! $user_id ) wp_send_json_error(['message' => 'کاربر معتبر نیست.']);
 
-    $contact_data = array_map('sanitize_text_field', $_POST);
-    unset($contact_data['_nonce'], $contact_data['action'], $contact_data['user_id']);
+    // گرفتن اطلاعات از دیتابیس با استفاده از wp_user_id
+    $existing_data = $wpdb->get_var( $wpdb->prepare( "SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id = %d", $user_id ) );
 
-    $existing = json_decode($wpdb->get_var("SELECT data FROM {$wpdb->prefix}shec_users WHERE id={$user_id}"), true);
-    $existing['contact'] = $contact_data;
+    // بررسی اینکه داده‌ها وجود دارند
+    if ( is_null( $existing_data ) ) {
+        error_log( "No data found for user_id: " . $user_id );
+        wp_send_json_error( 'داده‌ای برای این کاربر پیدا نشد' );
+    } else {
+        // تبدیل داده‌ها به آرایه
+        $existing = json_decode( $existing_data, true );
+    }
+    error_log( "Data retrieved for user_id: " . $user_id . " - " . print_r( $existing, true ) );
+    // اضافه کردن داده‌های تماس به موجود
+    $first_name = sanitize_text_field($_POST['first_name']);
+    $last_name  = sanitize_text_field($_POST['last_name']);
+    $state      = sanitize_text_field($_POST['state']);
+    $city       = sanitize_text_field($_POST['city']);
+    $mobile     = sanitize_text_field($_POST['mobile']);
+    $social     = sanitize_text_field($_POST['social']);
 
-    // --- این قسمت رو باید با API واقعی OpenAI جایگزین کنی ---
-    $ai_result = [
-        'method'      => 'FIT',
-        'graft_count' => 1500,
-        'analysis'    => 'توضیحات تحلیل توسط AI (فعلاً تستی)'
+    if (empty($first_name) || empty($last_name) || empty($state) || empty($city) || empty($mobile) || empty($social)) {
+        wp_send_json_error(['message' => 'تمامی فیلدها باید پر شوند.']);
+    }
+
+    // ذخیره اطلاعات تماس به داده‌های موجود
+    $existing['contact'] = [
+        'first_name' => $first_name,
+        'last_name'  => $last_name,
+        'state'      => $state,
+        'city'       => $city,
+        'mobile'     => $mobile,
+        'social'     => $social
     ];
-    $existing['ai_result'] = $ai_result;
 
+    // بروزرسانی اطلاعات در دیتابیس
     $wpdb->update(
         $wpdb->prefix . 'shec_users',
-        [
-            'data' => wp_json_encode($existing),
-            'wp_user_id' => get_current_user_id()
-        ],
-        ['id'   => $user_id]
+        ['data' => wp_json_encode($existing)],
+        ['wp_user_id' => $user_id] // استفاده از wp_user_id در به‌روزرسانی
     );
 
     wp_send_json_success([
-        'ai_result' => wp_json_encode($ai_result),
-        'user'      => $existing
+        'user' => $existing
     ]);
 }
-
 

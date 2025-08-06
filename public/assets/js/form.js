@@ -1,5 +1,7 @@
 var $ = jQuery.noConflict(); 
 $(document).ready(function () {
+    console.log("shec_ajax object:", shec_ajax);
+
     console.log("📌 form.js loaded!");
 
     // ======== متغیرهای اصلی ========
@@ -60,7 +62,6 @@ $(document).ready(function () {
             $(this).attr('src', $(this).data('gray'));
         });
     });
-
     // ==================== تغییر عکس‌های توضیحی آپلود (Step 3) ====================
     function updateUploadDescriptionImages(gender) {
         const images = {
@@ -130,8 +131,8 @@ $(document).ready(function () {
             $step2.find('.pattern-option img').each((idx, img) => {
                 const i = idx + 1;
                 img.src = (gender === 'female')
-                    ? `/assets/img/w${i}.png`
-                    : `/assets/img/ol${i}.png`;
+                    ? `${shec_ajax.img_path}w${i}.png`
+                    : `${shec_ajax.img_path}ol${i}.png`;
             });
 
             // ۳) صبر برای لود همه تصاویر
@@ -215,6 +216,16 @@ $(document).ready(function () {
             return;
         }
 
+        const dataToSend = {
+            action: 'shec_step1',
+            _nonce: shec_ajax.nonce,
+            gender: gender,
+            age: $('input[name="age"]:checked').val(),
+            confidence: $('select[name="confidence"]').val()
+        };
+
+        // لاگ کردن داده‌های ارسالی به کنسول
+        console.log("Data being sent to server:", dataToSend);
         $.post(
             shec_ajax.url,
             {
@@ -225,11 +236,12 @@ $(document).ready(function () {
                 confidence: $('select[name="confidence"]').val()
             },
             function (response) {
+                console.log(response);
                 if (response.success) {
-                    userId = response.user_id;
+                    console.log('res',response); // لاگ گرفتن از user_id
+                    userId = response.data.user_id;
                     localStorage.setItem('userId', userId);
                     localStorage.setItem('gender', gender);
-
                     initializeStep2PatternImages(gender);
                     goToStep(2);
                 } else {
@@ -243,15 +255,26 @@ $(document).ready(function () {
     // ======== مرحله ۲: الگوی ریزش ========
     $('#form-step-2').submit(function (e) {
         e.preventDefault();
+        const lossPattern = $('input[name="loss_pattern"]:checked').val();
+        const userId = localStorage.getItem('userId'); // دریافت user_id از localStorage
+
+        console.log('User ID being sent to server:', userId); // لاگ گرفتن از userId
+
+        if (!lossPattern) {
+            toastr.error('لطفاً الگوی ریزش مو را انتخاب کنید');
+            return;
+        }
+
         $.post(
             shec_ajax.url,
             {
                 action: 'shec_step2',
                 _nonce: shec_ajax.nonce,
-                user_id: userId,
-                loss_pattern: $('input[name="loss_pattern"]:checked').val()
+                user_id: userId, // ارسال user_id به سرور
+                loss_pattern: lossPattern
             },
             function (response) {
+                console.log('Response from server:', response); // بررسی پاسخ سرور
                 if (response.success) {
                     goToStep(3);
                 } else {
@@ -267,7 +290,7 @@ $(document).ready(function () {
         e.preventDefault();
         goToStep(4);
     });
-
+    
     $(document).on('change', '.upload-box input[type="file"]', function () {
         const fileInput = this;
         const file = fileInput.files[0];
@@ -296,14 +319,15 @@ $(document).ready(function () {
             contentType: false,
             success: function (res) {
                 if (res.success) {
-                    const url = res.file;
-                    $thumb.attr('src', url).removeClass('d-none');
+                    console.log('Response from server:', response);
+                    const firstFile = Object.values(res.files)[0];
+                    $thumb.attr('src', firstFile).removeClass('d-none');
                     $progress.addClass('d-none');
                     $bar.css('width', '0%');
                     $box.addClass('upload-success');
 
                     const uploads = JSON.parse(localStorage.getItem('uploadedPics') || '{}');
-                    uploads[fileInput.name] = url;
+                    uploads[fileInput.name] = firstFile;
                     localStorage.setItem('uploadedPics', JSON.stringify(uploads));
                 } else {
                     toastr.error(res.message || 'خطا در آپلود');
@@ -311,6 +335,7 @@ $(document).ready(function () {
             }
         });
     });
+
 
     // ======== مرحله ۴: سوالات پزشکی ========
     $(document).on('change', 'input[name="has_medical"]', function () {
@@ -335,6 +360,7 @@ $(document).ready(function () {
                 { user_id: userId }
             ),
             function (response) {
+                console.log('Response from server5:', response);
                 if (response.success) {
                     goToStep(5);
                 } else {
@@ -367,6 +393,7 @@ $(document).ready(function () {
                 social: $('input[name="social"]:checked').val()
             },
             function (response) {
+                console.log('Response from server5:', response);
                 if (response.success) {
                     let method = '';
                     let graftCount = '';
@@ -394,10 +421,10 @@ $(document).ready(function () {
                     `);
 
                     let summary = `
-                        <li><strong>نام:</strong> ${response.user.first_name} ${response.user.last_name}</li>
-                        <li><strong>جنسیت:</strong> ${response.user.gender}</li>
-                        <li><strong>سن:</strong> ${response.user.age}</li>
-                        <li><strong>شهر:</strong> ${response.user.city}, ${response.user.state}</li>
+                        <li><strong>نام:</strong> ${response.data.user.contact.first_name} ${response.data.user.contact.last_name}</li>
+                        <li><strong>جنسیت:</strong> ${response.data.user.contact.gender}</li>
+                        <li><strong>سن:</strong> ${response.data.user.contact.age}</li>
+                        <li><strong>شهر:</strong> ${response.data.user.contact.city}, ${response.data.user.contact.state}</li>
                     `;
                     $('#user-summary-list').html(summary);
 

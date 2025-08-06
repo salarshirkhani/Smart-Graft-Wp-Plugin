@@ -11,8 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  */
 add_action( 'wp_ajax_shec_step1', 'shec_handle_step1' );
 add_action( 'wp_ajax_nopriv_shec_step1', 'shec_handle_step1' );
+
 function shec_handle_step1() {
-    check_ajax_referer( 'shec_nonce', '_nonce' );
+    error_log("shec_handle_step1() function was called");
+    check_ajax_referer( 'shec_nonce', '_nonce' ); // امنیت افزوده شده با nonce
+    if( !isset($_POST['_nonce']) || !wp_verify_nonce($_POST['_nonce'], 'shec_nonce') ) {
+        error_log("Nonce verification failed!");
+    } else {
+        error_log("Nonce verification passed.");
+    }
+    
     global $wpdb;
 
     $gender     = sanitize_text_field( $_POST['gender'] ?? '' );
@@ -23,14 +31,23 @@ function shec_handle_step1() {
         wp_send_json_error( 'اطلاعات ناقص است' );
     }
 
+    error_log("Received data for step 1: Gender: {$gender}, Age: {$age}, Confidence: {$confidence}");
+
+    // ذخیره اطلاعات فرم در جدول `shec_users`
     $wpdb->insert(
         $wpdb->prefix . 'shec_users',
         [ 'data' => wp_json_encode( compact( 'gender', 'age', 'confidence' ) ) ],
         [ '%s' ]
     );
+    
+    // دریافت شناسه ثبت‌شده برای این داده‌ها
     $user_id = $wpdb->insert_id;
 
-    wp_send_json_success( [ 'user_id' => $user_id ] );
+    if ($wpdb->last_error) {
+        error_log("DB Insert Error: " . $wpdb->last_error);
+    }
+
+    wp_send_json_success( [ 'user_id' => $user_id ] ); // ارسال شناسه برای استفاده در مراحل بعد
 }
 
 /**
@@ -38,6 +55,7 @@ function shec_handle_step1() {
  */
 add_action( 'wp_ajax_shec_step2', 'shec_handle_step2' );
 add_action( 'wp_ajax_nopriv_shec_step2', 'shec_handle_step2' );
+
 function shec_handle_step2() {
     check_ajax_referer( 'shec_nonce', '_nonce' );
     global $wpdb;
@@ -49,13 +67,17 @@ function shec_handle_step2() {
         wp_send_json_error( 'اطلاعات مرحله ۲ ناقص است' );
     }
 
+    // دریافت داده‌های موجود
     $existing = $wpdb->get_var( $wpdb->prepare(
         "SELECT data FROM {$wpdb->prefix}shec_users WHERE id = %d",
         $user_id
     ));
+    
+    // تبدیل داده‌ها به آرایه و اضافه کردن الگوی ریزش مو
     $data = $existing ? json_decode( $existing, true ) : [];
     $data['loss_pattern'] = $pattern;
 
+    // به‌روزرسانی جدول `shec_users`
     $wpdb->update(
         $wpdb->prefix . 'shec_users',
         [ 'data' => wp_json_encode( $data ) ],
@@ -95,13 +117,16 @@ function shec_handle_step3() {
         }
     }
 
+    // دریافت داده‌های موجود
     $existing = $wpdb->get_var( $wpdb->prepare(
         "SELECT data FROM {$wpdb->prefix}shec_users WHERE id = %d",
         $user_id
     ));
+    
     $data = $existing ? json_decode( $existing, true ) : [];
     $data['uploaded_files'] = $uploaded_files;
 
+    // به‌روزرسانی جدول `shec_users`
     $wpdb->update(
         $wpdb->prefix . 'shec_users',
         [ 'data' => wp_json_encode( $data ) ],

@@ -31,7 +31,7 @@
                     <input type="radio" name="gender" value="female" class="hidden-radio">
                     <div class="option-box">
                         <span>زن</span>
-                        <img src="/assets/img/women.png" alt="زن">
+                        <img src="public/assets/img/women.png" alt="زن">
                     </div>
                     </label>
 
@@ -39,7 +39,7 @@
                     <input type="radio" name="gender" value="male" class="hidden-radio">
                     <div class="option-box">
                         <span>مرد</span>
-                        <img src="/assets/img/men.png" alt="مرد">
+                        <img src="public/assets/img/men.png" alt="مرد">
                     </div>
                     </label>
                 </div>
@@ -127,7 +127,7 @@
                     <div class="col-12 col-md-6">
                         <label class="pattern-option w-100 text-center">
                         <input type="radio" name="loss_pattern" value="pattern-<?php echo $i; ?>" hidden>
-                        <img src="/assets/img/<?php echo $i; ?>.webp" data-colored="/assets/img/ol<?php echo $i; ?>.png" data-gray="/assets/img/<?php echo $i; ?>.webp" class="pattern-img img-fluid">
+                        <img src="#" data-colored="" data-gray="" class="pattern-img img-fluid">
                         <div class="mt-2 fw-bold">الگوی <?php echo $i; ?></div>
                         </label>
                     </div>
@@ -301,4 +301,3 @@
 </div>
 
 <script>console.log('Form template loaded');</script>
-
