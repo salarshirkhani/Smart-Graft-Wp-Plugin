@@ -263,3 +263,192 @@ function shec_handle_step5(){
     ]);
 }
 
+function hide_header_footer_on_shec_page() {
+    if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_calculator')) {
+        echo '<style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .site-header, .site-footer, .wp-admin-bar, .header, .footer {
+                display: none;
+            }
+            header , footer{
+                display: none !important;
+            }   
+            #content {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+            }
+        </style>';
+    }
+}
+add_action('wp_head', 'hide_header_footer_on_shec_page');
+
+function remove_title_for_shec_page($title) {
+    // بررسی اینکه آیا صفحه دارای شورت‌کد است
+    if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_calculator')) {
+        return '';  // حذف عنوان صفحه
+    }
+    return $title;
+}
+
+// حذف عنوان صفحه برای شورت‌کد افزونه
+add_filter('wp_title', 'remove_title_for_shec_page', 10, 2);
+add_filter('document_title', 'remove_title_for_shec_page', 10, 2);
+
+
+
+function custom_page_styles_for_fullscreen() {
+    if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_calculator')) {
+        echo '<style>
+            #content {
+                display: block;
+                height: 100%;
+                width: 100%;
+            }
+
+        </style>';
+    }
+}
+add_action('wp_head', 'custom_page_styles_for_fullscreen');
+
+// نمایش داده‌ها در صفحه ادمین
+function shec_add_admin_menu() {
+    add_menu_page(
+        'فرم هوشمند فخرایی', // عنوان صفحه
+        'فرم هوشمند فخرایی ', // عنوان منو در داشبورد
+        'manage_options',     // مجوز دسترسی (ادمین)
+        'shec-form',          // شناسه منو
+        'shec_display_data',  // تابعی که داده‌ها را نمایش می‌دهد
+        'dashicons-chart-pie', // آیکون منو
+        6                     // موقعیت منو
+    );
+
+    // زیر منو تنظیمات
+    add_submenu_page(
+        'shec-form',
+        'تنظیمات',           // عنوان صفحه زیرمنو
+        'تنظیمات',           // عنوان منو
+        'manage_options',     // مجوز دسترسی (ادمین)
+        'shec-settings',      // شناسه صفحه زیرمنو
+        'shec_display_settings' // تابعی که تنظیمات را نمایش می‌دهد
+    );
+}
+add_action('admin_menu', 'shec_add_admin_menu');
+
+// نمایش داده‌ها در صفحه ادمین
+function shec_display_data() {
+    global $wpdb;
+
+    // گرفتن داده‌ها از جدول
+    $results = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}shec_users");
+
+    echo '<div class="wrap">';
+    echo '<h1 class="wp-heading-inline">داده‌های فرم هوشمند فخرایی</h1>';
+
+    if (!empty($results)) {
+        echo '<table class="wp-list-table widefat fixed striped posts">
+                <thead>
+                    <tr>
+                        <th scope="col" class="manage-column">شناسه</th>
+                        <th scope="col" class="manage-column">جنسیت</th>
+                        <th scope="col" class="manage-column">سن</th>
+                        <th scope="col" class="manage-column">اعتماد به نفس</th>
+                        <th scope="col" class="manage-column">الگوی ریزش مو</th>
+                        <th scope="col" class="manage-column">سابقه پزشکی</th>
+                        <th scope="col" class="manage-column">نام</th>
+                        <th scope="col" class="manage-column">نام خانوادگی</th>
+                        <th scope="col" class="manage-column">استان</th>
+                        <th scope="col" class="manage-column">شهر</th>
+                        <th scope="col" class="manage-column">شماره تلفن</th>
+                        <th scope="col" class="manage-column">سوشال مدیا</th>
+                        <th scope="col" class="manage-column">مرحله تکمیل</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+        // نمایش داده‌ها
+        foreach ($results as $row) {
+            $data = json_decode($row->data, true); // تبدیل JSON به آرایه
+
+            // نمایش داده‌های مختلف
+            $gender = $data['gender'] ?? 'N/A';
+            $age = $data['age'] ?? 'N/A';
+            $confidence = $data['confidence'] ?? 'N/A';
+            $loss_pattern = $data['loss_pattern'] ?? 'N/A';
+            $medical = $data['medical'] ?? [];
+            $first_name = $data['contact']['first_name'] ?? 'N/A';
+            $last_name = $data['contact']['last_name'] ?? 'N/A';
+            $state = $data['contact']['state'] ?? 'N/A';
+            $city = $data['contact']['city'] ?? 'N/A';
+            $mobile = $data['contact']['mobile'] ?? 'N/A';
+            $social = $data['contact']['social'] ?? 'N/A';
+
+            // مشخص کردن اینکه کاربر چه مرحله‌ای را تکمیل کرده است
+            $completion_stage = 0;
+            if (isset($data['contact']['first_name']) && isset($data['contact']['last_name'])) {
+                $completion_stage = 5;
+            } elseif (isset($data['gender']) && isset($data['age'])) {
+                $completion_stage = 3;
+            } else {
+                $completion_stage = 1;
+            }
+
+            // رنگ‌بندی بر اساس مرحله تکمیل
+            $stage_class = '';
+            if ($completion_stage < 5) {
+                $stage_class = 'style="background-color: #f7f7a5;"'; // زرد برای مراحل ناتمام
+            }
+
+            echo '<tr ' . $stage_class . '>';
+            echo '<td>' . $row->id . '</td>';
+            echo '<td>' . $gender . '</td>';
+            echo '<td>' . $age . '</td>';
+            echo '<td>' . $confidence . '</td>';
+            echo '<td>' . $loss_pattern . '</td>';
+            echo '<td>' . (isset($medical['has_medical']) ? $medical['has_medical'] : 'N/A') . '</td>';
+            echo '<td>' . $first_name . '</td>';
+            echo '<td>' . $last_name . '</td>';
+            echo '<td>' . $state . '</td>';
+            echo '<td>' . $city . '</td>';
+            echo '<td>' . $mobile . '</td>';
+            echo '<td>' . $social . '</td>';
+            echo '<td>' . $completion_stage . '</td>';
+            echo '</tr>';
+        }
+
+        echo '</tbody></table>';
+    } else {
+        echo '<p>داده‌ای یافت نشد.</p>';
+    }
+    echo '</div>';
+}
+
+// صفحه تنظیمات
+function shec_display_settings() {
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['shec_api_key'])) {
+        // ذخیره‌سازی کلید API در دیتابیس
+        update_option('shec_api_key', sanitize_text_field($_POST['shec_api_key']));
+        echo '<div class="updated"><p>کلید API با موفقیت ذخیره شد.</p></div>';
+    }
+
+    // خواندن کلید API ذخیره‌شده (در صورت وجود)
+    $api_key = get_option('shec_api_key', '');
+
+    echo '<div class="wrap">';
+    echo '<h1>تنظیمات API</h1>';
+    echo '<form method="POST">';
+    echo '<label for="shec_api_key">کلید API OpenAI:</label>';
+    echo '<input type="text" id="shec_api_key" name="shec_api_key" value="' . esc_attr($api_key) . '" />';
+    echo '<input type="submit" value="ذخیره" class="button-primary" />';
+    echo '</form>';
+    echo '</div>';
+}
+
+// ثبت تنظیمات API
+function shec_register_settings() {
+    register_setting('shec_settings_group', 'shec_openai_api_key');
+}
+
+add_action('admin_init', 'shec_register_settings');

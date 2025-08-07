@@ -1,3 +1,4 @@
+<?php $img_path = plugins_url('../public/assets/img/', __FILE__); ?>
 <div id="progress-wrapper" class="position-sticky top-0 start-0 w-100 bg-white z-3" >
     <div class="progress" style="height: 8px; border-radius:0px;">
          <div id="progress-bar" class="progress-bar bg-or" role="progressbar" style="width: 0%; transition: width 0.4s ease;"></div>
@@ -31,7 +32,7 @@
                     <input type="radio" name="gender" value="female" class="hidden-radio">
                     <div class="option-box">
                         <span>زن</span>
-                        <img src="public/assets/img/women.png" alt="زن">
+                        <img src="<?php echo $img_path . 'women.png'; ?>" alt="زن">
                     </div>
                     </label>
 
@@ -39,7 +40,7 @@
                     <input type="radio" name="gender" value="male" class="hidden-radio">
                     <div class="option-box">
                         <span>مرد</span>
-                        <img src="public/assets/img/men.png" alt="مرد">
+                        <img src="<?php echo $img_path . 'men.png'; ?>" alt="مرد">
                     </div>
                     </label>
                 </div>
