@@ -13,57 +13,63 @@ $(document).ready(function () {
         female: ['روبرو', 'بالای سر', 'فرق سر']
     };
 
+    function showLoader() {
+        $('#step2-loader').show();  // لودینگ را نمایش می‌دهیم
+        $('#form-step-2 .step-content').hide();  // مخفی کردن محتوای اصلی
+    }
+
+    function hideLoader() {
+        $('#step2-loader').hide();  // لودینگ را مخفی می‌کنیم
+        $('#form-step-2 .step-content').show();  // نمایش محتوای اصلی
+    }
+
     // ==================== تغییر عکس‌های الگوی ریزش مو (Step 2) ====================
+    // تابعی که فقط تصاویر رنگی را لود می‌کند
     function initializeStep2PatternImages(gender) {
         const isF = gender === 'female';
         $('#form-step-2 .pattern-option img').each((idx, img) => {
             const i = idx + 1;
-            // مسیر رنگی (یک‌بار بارگذاری میشه)
-            img.src = isF
-                ? `${shec_ajax.img_path}w${i}.png`
-                : `${shec_ajax.img_path}ol${i}.png`;
+            const colored = isF ? `${shec_ajax.img_path}w${i}.png` : `${shec_ajax.img_path}ol${i}.png`;
+            $(img).data('colored', colored)[0].src = colored;
+            $(img).css('filter', 'grayscale(100%)');  // تصویر به صورت سیاه و سفید لود می‌شود
         });
     }
 
+    // پیش‌بارگذاری تصاویر رنگی فقط
     const preloadImages = () => {
         const urls = [];
         for (let i = 1; i <= 6; i++) {
-            urls.push(`${shec_ajax.img_path}${i}.webp`);
             urls.push(`${shec_ajax.img_path}w${i}.png`);
         }
-        urls.forEach(u => (new Image().src = u));
+        urls.forEach(u => (new Image().src = u));  // فقط تصاویر رنگی پیش‌بارگذاری می‌شود
     };
     preloadImages();
-
-    // 2️⃣ تابع آپدیت Step2 (فقط وقتی واردش می‌شوید)
-    function updateLossPatternImages(gender) {
-        const isF = gender === 'female';
-        $('#form-step-2 .pattern-option img').each(function (idx) {
-            const i = idx + 1;
-            const gray = isF ? `${shec_ajax.img_path}wg${i}.png` : `${shec_ajax.img_path}${i}.webp`;
-            const col = isF ? `${shec_ajax.img_path}w${i}.png` : `${shec_ajax.img_path}ol${i}.png`;
-            $(this).data('gray', gray).data('colored', col)[0].src = gray;
-        });
-
-        // ریست انتخاب
-        $('input[name="loss_pattern"]').prop('checked', false);
-        $('.pattern-option').removeClass('selected');
-    }
 
     $('#form-step-2').on('click', '.pattern-option', function () {
         $('.pattern-option').removeClass('selected');
         $(this).addClass('selected');
         $('input[name="loss_pattern"]', this).prop('checked', true);
-        // عکس انتخاب‌شده رو رنگی کن
+
+        // تغییر تصویر انتخاب‌شده به رنگی
         const img = $(this).find('img');
-        img.attr('src', img.data('colored'));
-        // دیگران خاکستری
-        $('#form-step-2 .pattern-option img').not(img).each(function(){
-            $(this).attr('src', $(this).data('gray'));
+        img.css('filter', 'none');  // تصویر انتخاب‌شده به حالت رنگی
+        img.attr('src', img.data('colored'));  // تغییر تصویر به رنگی
+
+        // تغییر باقی تصاویر به حالت سیاه و سفید
+        $('#form-step-2 .pattern-option img').not(img).each(function() {
+            $(this).css('filter', 'grayscale(100%)');  // سایر تصاویر سیاه و سفید می‌شوند
         });
     });
+
+    // هنگام بارگذاری صفحه، ابتدا تصاویر رنگی بارگذاری می‌شوند
+    $(document).ready(function() {
+        const gender = localStorage.getItem('gender') || 'male'; // از جنسیت ذخیره شده استفاده می‌کنیم
+        initializeStep2PatternImages(gender);
+    });
+
     // ==================== تغییر عکس‌های توضیحی آپلود (Step 3) ====================
     function updateUploadDescriptionImages(gender) {
+        showLoader();
         const images = {
             male: [
                 'https://fakhraei.clinic/wp-content/uploads/2025/07/New-Project-80.webp',
@@ -95,10 +101,12 @@ $(document).ready(function () {
             'justify-content': gender === 'female' ? 'center' : 'space-between',
             'gap': '12px'
         });
+        hideLoader();
     }
 
     // ==================== هدایت به مرحله مشخص ====================
     function goToStep(step) {
+        showLoader();
         $('.step').addClass('d-none').removeClass('active');
         $('#step-' + step).removeClass('d-none').addClass('active');
         updateProgress(step);
@@ -119,13 +127,11 @@ $(document).ready(function () {
         if (step === 2) {
             const gender = localStorage.getItem('gender') || 'male';
             const $step2    = $('#step-2');
-            const $loader   = $('#step2-loader');
-            const $content  = $step2.find('.step-content');
+            showLoader();
 
             // ۱) نشان دادن کانتینر Step2 و لودر، پنهان کردن محتوای داخل
             $step2.show().addClass('active');
-            $content.hide();
-            $loader.show();
+            
 
             // ۲) یک‌بار ست کردن src تصاویر رنگی
             $step2.find('.pattern-option img').each((idx, img) => {
@@ -142,8 +148,7 @@ $(document).ready(function () {
                 else img.onload = resolve;
             }))).then(() => {
                 // ۴) وقتی آماده شد: مخفی کردن لودر، نمایش محتوا
-                $loader.hide();
-                $content.show();
+                hideLoader();
                 updateProgress(2);
                 localStorage.setItem('currentStep', 2);
             });
@@ -154,6 +159,7 @@ $(document).ready(function () {
         if (step === 6) {
             localStorage.removeItem('currentStep');
         }
+        hideLoader();
     }
 
     // ======== آپدیت نوار پیشرفت ========
