@@ -52,47 +52,36 @@
                 <span class="text-danger">*</span></label>
                 <div class="a-box d-flex justify-content-center gap-1">
                     <label class="age-option">
-                    <input type="radio" name="age" value="female" class="hidden-radio">
-                    <div class="option-box">
-                        <span>18-23</span>
-                    </div>
+                        <input type="radio" name="age" value="18-23" class="hidden-radio">
+                        <div class="option-box"><span>18-23</span></div>
                     </label>
-
                     <label class="age-option">
-                    <input type="radio" name="age" value="male" class="hidden-radio">
-                    <div class="option-box">
-                        <span>24-29</span>
-                    </div>
+                        <input type="radio" name="age" value="24-29" class="hidden-radio">
+                        <div class="option-box"><span>24-29</span></div>
                     </label>
-
                     <label class="age-option">
-                    <input type="radio" name="age" value="male" class="hidden-radio">
-                    <div class="option-box">
-                        <span>30-35</span>
-                    </div>
+                        <input type="radio" name="age" value="30-35" class="hidden-radio">
+                        <div class="option-box"><span>30-35</span></div>
                     </label>
-
                     <label class="age-option">
-                    <input type="radio" name="age" value="male" class="hidden-radio">
-                    <div class="option-box">
-                        <span>36-43</span>
-                    </div>
+                        <input type="radio" name="age" value="36-43" class="hidden-radio">
+                        <div class="option-box"><span>36-43</span></div>
                     </label>
-
                     <label class="age-option">
-                    <input type="radio" name="age" value="male" class="hidden-radio">
-                    <div class="option-box">
-                        <span>44-56</span>
-                    </div>
+                        <input type="radio" name="age" value="44-56" class="hidden-radio">
+                        <div class="option-box"><span>44-56</span></div>
                     </label>
-
                     <label class="age-option">
-                    <input type="radio" name="age" value="male" class="hidden-radio">
-                    <div class="option-box">
-                        <span>+56</span>
-                    </div>
+                        <input type="radio" name="age" value="+56" class="hidden-radio">
+                        <div class="option-box"><span>+56</span></div>
                     </label>
                 </div>
+
+                <p class="d-block mb-2 fw-bold" style="text-align: right; margin-bottom:5px;">شماره تلفن همراه خود را وارد کنید</p>
+                    <div class="mt-1 d-flex gap-1 justify-content-between" style="margin-bottom:30px; ">
+                    <input type="text" class="d-block mb-2 fw-bold col-12" style="padding: 10px;" name="mobile" placeholder="شماره همراه">
+                </div>
+
             </div>
 
             <div class="mb-4">
@@ -259,10 +248,7 @@
                         <input type="text" class="col-sm-12 col-md-6" name="state" placeholder="استان">
                         <input type="text" class="col-sm-12 col-md-6" name="city" placeholder="شهر">
                     </div>
-                    <p class="d-block mb-2 fw-bold">شماره تلفن همراه خود را وارد کنید</p>
-                    <div class="mt-1 d-flex gap-1 justify-content-between" style="padding:5px; margin-bottom:30px; ">
-                        <input type="text" class="col-12" name="mobile" placeholder="شماره همراه">
-                    </div>
+
                     <p class="d-block mb-2 fw-bold">از چه طریق تمایل به دریافت مشاوره تخصصی دارید؟</p>
                     <div class="mt-1 d-flex gap-1 justify-content-between" style="padding:5px; margin-bottom:30px; ">
                         <div class="toggle-group">

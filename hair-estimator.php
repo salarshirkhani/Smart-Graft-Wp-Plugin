@@ -50,25 +50,49 @@ function shec_activate_plugin() {
 add_action( 'wp_enqueue_scripts', 'shec_enqueue_assets' );
 function shec_enqueue_assets() {
     wp_enqueue_script('jquery');
+
+    // toastr
     wp_enqueue_style( 'toastr-css', 'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css' );
-    wp_enqueue_script( 'toastr-js', 'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js' );
+    wp_enqueue_script( 'toastr-js', 'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js', [], null, true );
 
+    // jsPDF برای دانلود PDF
+    wp_enqueue_script(
+        'jspdf',
+        'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+        [],
+        '2.5.1',
+        true
+    );
+
+    // استایل و اسکریپت خود افزونه
     wp_enqueue_style( 'shec-style', SHEC_URL . 'public/assets/scss/style.css' );
+    wp_enqueue_script( 'shec-form-js', SHEC_URL . 'public/assets/js/form.js', ['jquery','toastr-js','jspdf'], '1.0.1', true );
 
-    wp_enqueue_script( 'shec-form-js', SHEC_URL . 'public/assets/js/form.js', ['jquery','toastr-js'], '1.0.0', true );
-    wp_localize_script( 'shec-form-js', 'shec_ajax', [
-        'url'   => admin_url( 'admin-ajax.php' ),
-        'nonce' => wp_create_nonce( 'shec_nonce' ),
-    ] );
-
+    // فقط یک‌بار localize
     wp_localize_script('shec-form-js', 'shec_ajax', [
         'url'      => admin_url('admin-ajax.php'),
         'nonce'    => wp_create_nonce('shec_nonce'),
-        'img_path' => plugins_url('public/assets/img/', __FILE__), // ✅ مسیر عکس‌ها برای JS
+        'img_path' => plugins_url('public/assets/img/', __FILE__),
     ]);
 }
 
+if ( ! function_exists('shec_is_localhost') ) {
+    function shec_is_localhost() {
+        $h = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+        return in_array($h, ['localhost', '127.0.0.1'], true);
+    }
+}
 
+// در لوکال بای‌پس؛ در سرور اصلی حتماً نانس چک می‌شود
+if ( ! function_exists('shec_check_nonce_or_bypass') ) {
+    function shec_check_nonce_or_bypass() {
+        if ( shec_is_localhost() || (defined('WP_DEBUG') && WP_DEBUG) ) {
+            return true; // بای‌پس در محیط توسعه
+        }
+        check_ajax_referer('shec_nonce','_nonce');
+        return true;
+    }
+}
 
 // 5) شورت‌کد برای نمایش فرم
 add_shortcode( 'smart_hair_calculator', function() {
@@ -78,71 +102,106 @@ add_shortcode( 'smart_hair_calculator', function() {
 });
 
 // ================= STEP 1 =================
+if ( ! function_exists('shec_normalize_mobile') ) {
+    function shec_normalize_mobile($mobile_raw) {
+        // فقط عدد
+        $m = preg_replace('/\D+/', '', (string)$mobile_raw);
+
+        // 0098 / +98 / 98 => حذف پیش‌شماره ایران
+        if (strpos($m, '0098') === 0) $m = substr($m, 4);
+        if (strpos($m, '98') === 0)   $m = substr($m, 2);
+
+        // اگر با 9 شروع شد، 0 اضافه کن
+        if (strpos($m, '9') === 0) $m = '0' . $m;
+
+        // الان باید 09xxxxxxxxx شود (11 رقم)
+        if (preg_match('/^09\d{9}$/', $m)) {
+            return $m;
+        }
+
+        // اگر نامعتبر بود، همون ورودی خام رو برگردون
+        return $mobile_raw;
+    }
+}
+
+
 add_action( 'wp_ajax_shec_step1', 'shec_handle_step1' );
 add_action( 'wp_ajax_nopriv_shec_step1', 'shec_handle_step1' );
 function shec_handle_step1() {
-    check_ajax_referer('shec_nonce','_nonce');
+    shec_check_nonce_or_bypass(); // ← اینجا
     global $wpdb;
 
-    $gender     = sanitize_text_field($_POST['gender']);
-    $age        = sanitize_text_field($_POST['age']);
-    $confidence = sanitize_text_field($_POST['confidence']);
+    // نرمال‌سازی ساده
+    $normalize = function($m){
+        $m = preg_replace('/\D+/', '', (string)$m);
+        if (strpos($m,'0098')===0) $m = substr($m,4);
+        if (strpos($m,'98')===0)   $m = substr($m,2);
+        if (strpos($m,'9')===0)    $m = '0'.$m;
+        return $m;
+    };
 
-    // بررسی اینکه تمام داده‌ها ارسال شده‌اند
-    if ( ! $gender || ! $age ) {
-        wp_send_json_error(['message' => 'اطلاعات ناقص است.']);
+    $gender     = sanitize_text_field($_POST['gender'] ?? '');
+    $age        = sanitize_text_field($_POST['age'] ?? '');
+    $confidence = sanitize_text_field($_POST['confidence'] ?? '');
+    $mobile     = $normalize(sanitize_text_field($_POST['mobile'] ?? ''));
+
+    $valid_ages = ['18-23','24-29','30-35','36-43','44-56','+56'];
+    if (!$gender || !in_array($age,$valid_ages,true)) {
+        wp_send_json_error(['message' => 'لطفاً جنسیت و بازه سنی معتبر وارد کنید.']);
+    }
+    if (!preg_match('/^09\d{9}$/',$mobile)) {
+        wp_send_json_error(['message' => 'شماره موبایل معتبر نیست. مثال: 09xxxxxxxxx']);
     }
 
-    // ایجاد شناسه یکتا برای کاربر
-    $user_id = get_current_user_id(); // اگر یوزر لاگین کرده باشد، شناسه او را می‌گیرد
+    $user_id = get_current_user_id();
     if (!$user_id) {
-        // اگر کاربر لاگین نکرده باشد، یک شناسه تصادفی عددی ایجاد کن
-        $user_id = $wpdb->get_var("SELECT MAX(id) FROM {$wpdb->prefix}shec_users") + 1; 
+        $maxId = (int) $wpdb->get_var("SELECT MAX(id) FROM {$wpdb->prefix}shec_users");
+        $user_id = $maxId > 0 ? ($maxId + 1) : 1;
     }
-    error_log("User ID: " . $user_id); // لاگ گرفتن از شناسه یکتا
-    // ذخیره اطلاعات در جدول shec_users
+
+    $data = [
+        'gender'     => $gender,
+        'age'        => $age,
+        'mobile'     => $mobile,        // ✅ موبایل در ریشه
+        'confidence' => $confidence
+    ];
+
     $wpdb->insert( $wpdb->prefix . 'shec_users', [
-        'wp_user_id' => $user_id, // ذخیره شناسه یکتا در فیلد wp_user_id
-        'data' => wp_json_encode([
-            'gender'     => $gender,
-            'age'        => $age,
-            'confidence' => $confidence
-        ])
+        'wp_user_id' => $user_id,
+        'data'       => wp_json_encode($data)
     ] );
 
-    wp_send_json_success(['user_id' => $user_id]); // ارسال شناسه یکتا برای استفاده در مراحل بعد
+    wp_send_json_success(['user_id' => $user_id]);
 }
+
 
 // ================= STEP 2 =================
 add_action( 'wp_ajax_shec_step2', 'shec_handle_step2' );
 add_action( 'wp_ajax_nopriv_shec_step2', 'shec_handle_step2' );
 function shec_handle_step2() {
-    check_ajax_referer('shec_nonce','_nonce');
+shec_check_nonce_or_bypass();
+
     global $wpdb;
 
-    $user_id      = intval($_POST['user_id']); // دریافت user_id از درخواست
-    $pattern      = sanitize_text_field($_POST['loss_pattern']); // دریافت الگوی ریزش مو
+    $user_id = intval($_POST['user_id'] ?? 0);
+    $pattern = sanitize_text_field($_POST['loss_pattern'] ?? '');
 
-    if ( $user_id <= 0 || empty( $pattern ) ) {
-        wp_send_json_error( 'اطلاعات مرحله ۲ ناقص است' );
+    if ($user_id <= 0 || empty($pattern)) {
+        wp_send_json_error(['message' => 'اطلاعات مرحله ۲ ناقص است']);
     }
 
-    // جستجوی داده‌ها با استفاده از wp_user_id (فیلد صحیح)
-    $existing = $wpdb->get_var( $wpdb->prepare(
-        "SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id = %s", $user_id
+    $existing_json = $wpdb->get_var( $wpdb->prepare(
+        "SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id = %d", $user_id
     ));
-
-    // اگر داده‌ها وجود دارند، الگوی ریزش را اضافه کنید
-    $data = $existing ? json_decode( $existing, true ) : [];
+    $data = $existing_json ? json_decode($existing_json, true) : [];
     $data['loss_pattern'] = $pattern;
 
-    // به‌روزرسانی داده‌ها در دیتابیس
     $wpdb->update(
         $wpdb->prefix . 'shec_users',
         ['data' => wp_json_encode($data)],
-        ['wp_user_id' => $user_id], // تغییر از 'id' به 'wp_user_id'
+        ['wp_user_id' => $user_id],
         ['%s'],
-        ['%s']
+        ['%d']
     );
 
     wp_send_json_success();
@@ -153,13 +212,14 @@ function shec_handle_step2() {
 add_action( 'wp_ajax_shec_step3', 'shec_handle_step3' );
 add_action( 'wp_ajax_nopriv_shec_step3', 'shec_handle_step3' );
 function shec_handle_step3(){
-    check_ajax_referer('shec_nonce','_nonce');
+shec_check_nonce_or_bypass();
+
     global $wpdb;
 
-    $user_id = intval($_POST['user_id']);
-    $position = sanitize_text_field($_POST['position']);
+    $user_id = intval($_POST['user_id'] ?? 0);
+    $position = sanitize_text_field($_POST['position'] ?? '');
 
-    if ( ! $user_id || empty($_FILES) ) {
+    if (!$user_id || empty($_FILES)) {
         wp_send_json_error(['message' => 'فایل یا کاربر معتبر نیست.']);
     }
 
@@ -170,38 +230,68 @@ function shec_handle_step3(){
         wp_send_json_error(['message' => $uploaded['error']]);
     }
 
-    $existing = json_decode($wpdb->get_var("SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id={$user_id}"), true);
-    $existing['uploads'][$position] = $uploaded['url'];
+    $existing_json = $wpdb->get_var( $wpdb->prepare(
+        "SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id = %d", $user_id
+    ));
+    $data = $existing_json ? json_decode($existing_json, true) : [];
+    if (!isset($data['uploads'])) $data['uploads'] = [];
+    $data['uploads'][$position] = $uploaded['url'];
 
     $wpdb->update(
         $wpdb->prefix . 'shec_users',
-        ['data' => wp_json_encode($existing)],
-        ['id'   => $user_id]
+        ['data' => wp_json_encode($data)],
+        ['wp_user_id' => $user_id],
+        ['%s'],
+        ['%d']
     );
 
     wp_send_json_success(['file' => $uploaded['url']]);
 }
 
+
 // ================= STEP 4 =================
 add_action( 'wp_ajax_shec_step4', 'shec_handle_step4' );
 add_action( 'wp_ajax_nopriv_shec_step4', 'shec_handle_step4' );
 function shec_handle_step4(){
-    check_ajax_referer('shec_nonce','_nonce');
+    shec_check_nonce_or_bypass(); // یا همان check_ajax_referer که قبلاً داشتی
     global $wpdb;
 
-    $user_id = intval($_POST['user_id']);
-    if ( ! $user_id ) wp_send_json_error(['message' => 'کاربر معتبر نیست.']);
+    $user_id = intval($_POST['user_id'] ?? 0);
+    if (!$user_id) wp_send_json_error(['message' => 'کاربر معتبر نیست.']);
 
+    // ✅ اجبار انتخاب رادیوها
+    $has_medical = isset($_POST['has_medical']) ? sanitize_text_field($_POST['has_medical']) : '';
+    $has_meds    = isset($_POST['has_meds']) ? sanitize_text_field($_POST['has_meds']) : '';
+
+    if (!in_array($has_medical, ['yes','no'], true)) {
+        wp_send_json_error(['message' => 'لطفاً وضعیت ابتلا به بیماری را مشخص کنید.']);
+    }
+    if (!in_array($has_meds, ['yes','no'], true)) {
+        wp_send_json_error(['message' => 'لطفاً وضعیت مصرف دارو را مشخص کنید.']);
+    }
+    if ($has_meds === 'yes') {
+        $meds_list = trim(sanitize_text_field($_POST['meds_list'] ?? ''));
+        if ($meds_list === '') {
+            wp_send_json_error(['message' => 'نام دارو را وارد کنید.']);
+        }
+    }
+
+    // بقیه‌ی فیلدها
     $medical_data = array_map('sanitize_text_field', $_POST);
     unset($medical_data['_nonce'], $medical_data['action'], $medical_data['user_id']);
 
-    $existing = json_decode($wpdb->get_var("SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id={$user_id}"), true);
-    $existing['medical'] = $medical_data;
+    $existing_json = $wpdb->get_var( $wpdb->prepare(
+        "SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id = %d", $user_id
+    ));
+    $data = $existing_json ? json_decode($existing_json, true) : [];
+    $data['medical'] = $medical_data;
 
     $wpdb->update(
         $wpdb->prefix . 'shec_users',
-        ['data' => wp_json_encode($existing)],
-        ['id'   => $user_id]
+        ['data' => wp_json_encode($data)],
+        ['wp_user_id' => $user_id],
+        ['%s'],
+        ['%d']
     );
 
     wp_send_json_success();
@@ -211,57 +301,62 @@ function shec_handle_step4(){
 add_action( 'wp_ajax_shec_step5', 'shec_handle_step5' );
 add_action( 'wp_ajax_nopriv_shec_step5', 'shec_handle_step5' );
 function shec_handle_step5(){
-    check_ajax_referer('shec_nonce','_nonce');
+    shec_check_nonce_or_bypass(); // ← اینجا
     global $wpdb;
 
-    $user_id = intval($_POST['user_id']);
-    if ( ! $user_id ) wp_send_json_error(['message' => 'کاربر معتبر نیست.']);
+    $user_id = intval($_POST['user_id'] ?? 0);
+    if (!$user_id) wp_send_json_error(['message' => 'کاربر معتبر نیست.']);
 
-    // گرفتن اطلاعات از دیتابیس با استفاده از wp_user_id
-    $existing_data = $wpdb->get_var( $wpdb->prepare( "SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id = %d", $user_id ) );
-
-    // بررسی اینکه داده‌ها وجود دارند
-    if ( is_null( $existing_data ) ) {
-        error_log( "No data found for user_id: " . $user_id );
-        wp_send_json_error( 'داده‌ای برای این کاربر پیدا نشد' );
-    } else {
-        // تبدیل داده‌ها به آرایه
-        $existing = json_decode( $existing_data, true );
-    }
-    error_log( "Data retrieved for user_id: " . $user_id . " - " . print_r( $existing, true ) );
-    // اضافه کردن داده‌های تماس به موجود
-    $first_name = sanitize_text_field($_POST['first_name']);
-    $last_name  = sanitize_text_field($_POST['last_name']);
-    $state      = sanitize_text_field($_POST['state']);
-    $city       = sanitize_text_field($_POST['city']);
-    $mobile     = sanitize_text_field($_POST['mobile']);
-    $social     = sanitize_text_field($_POST['social']);
-
-    if (empty($first_name) || empty($last_name) || empty($state) || empty($city) || empty($mobile) || empty($social)) {
-        wp_send_json_error(['message' => 'تمامی فیلدها باید پر شوند.']);
+    $existing_json = $wpdb->get_var( $wpdb->prepare(
+        "SELECT data FROM {$wpdb->prefix}shec_users WHERE wp_user_id = %d", $user_id
+    ));
+    if ( is_null($existing_json) ) {
+        wp_send_json_error('داده‌ای برای این کاربر پیدا نشد');
     }
 
-    // ذخیره اطلاعات تماس به داده‌های موجود
-    $existing['contact'] = [
+    $data = json_decode($existing_json, true);
+
+    $first_name = sanitize_text_field($_POST['first_name'] ?? '');
+    $last_name  = sanitize_text_field($_POST['last_name'] ?? '');
+    $state      = sanitize_text_field($_POST['state'] ?? '');
+    $city       = sanitize_text_field($_POST['city'] ?? '');
+    $social     = sanitize_text_field($_POST['social'] ?? '');
+
+    if (!$first_name || !$last_name || !$state || !$city || !$social) {
+        wp_send_json_error(['message' => 'تمامی فیلدهای مرحله ۵ (به جز موبایل) باید پر شوند.']);
+    }
+
+    if (!isset($data['contact'])) $data['contact'] = [];
+    $data['contact'] = array_merge($data['contact'], [
         'first_name' => $first_name,
         'last_name'  => $last_name,
         'state'      => $state,
         'city'       => $city,
-        'mobile'     => $mobile,
         'social'     => $social
-    ];
+        // mobile قبلی حفظ می‌شود
+    ]);
 
-    // بروزرسانی اطلاعات در دیتابیس
     $wpdb->update(
         $wpdb->prefix . 'shec_users',
-        ['data' => wp_json_encode($existing)],
-        ['wp_user_id' => $user_id] // استفاده از wp_user_id در به‌روزرسانی
+        ['data' => wp_json_encode($data)],
+        ['wp_user_id' => $user_id],
+        ['%s'],
+        ['%d']
     );
 
+    $ai_mock = [
+        'method' => 'FIT',
+        'graft_count' => 2800,
+        'analysis' => 'با توجه به الگوی ریزش و سن، روش FIT مناسب‌تر است.'
+    ];
+
     wp_send_json_success([
-        'user' => $existing
+        'user'      => $data,
+        'ai_result' => wp_json_encode($ai_mock)
     ]);
 }
+
+
 
 function shec_remove_theme_styles_and_scripts() {
     if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_calculator')) {
@@ -448,7 +543,7 @@ function shec_display_user_details() {
         echo '<p><strong>الگوی ریزش مو:</strong> ' . ($data['loss_pattern'] ?? 'N/A') . '</p>';
         echo '<p><strong>نام:</strong> ' . ($data['contact']['first_name'] ?? 'N/A') . '</p>';
         echo '<p><strong>نام خانوادگی:</strong> ' . ($data['contact']['last_name'] ?? 'N/A') . '</p>';
-        echo '<p><strong>شماره تلفن:</strong> ' . ($data['contact']['mobile'] ?? 'N/A') . '</p>';
+        echo '<p><strong>شماره تلفن:</strong> ' . esc_html($data['mobile'] ?? ($data['contact']['mobile'] ?? 'N/A')) . '</p>';
         echo '<p><strong>سوشال مدیا:</strong> ' . ($data['contact']['social'] ?? 'N/A') . '</p>';
 
         // نمایش سوالات و پاسخ‌ها

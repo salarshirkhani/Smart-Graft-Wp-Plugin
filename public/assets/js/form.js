@@ -23,6 +23,23 @@ $(document).ready(function () {
         $('#form-step-2 .step-content').show();  // نمایش محتوای اصلی
     }
 
+    function markErrorAndScroll(selector, msg, focusSelector) {
+        const $el = $(selector);
+        $el.addClass('error shake');
+
+        // اسکرول نرم (هر کدوم موجود بود)
+        if ($el.length && $el.get(0) && $el.get(0).scrollIntoView) {
+            $el.get(0).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if ($el.length) {
+            $('html, body').animate({ scrollTop: $el.offset().top - 120 }, 300);
+        }
+
+        if (msg) toastr.error(msg);
+        if (focusSelector) $(focusSelector).trigger('focus');
+
+        setTimeout(() => $el.removeClass('shake'), 400);
+    }
+
     // ==================== تغییر عکس‌های الگوی ریزش مو (Step 2) ====================
     // تابعی که فقط تصاویر رنگی را لود می‌کند
     function initializeStep2PatternImages(gender) {
@@ -214,48 +231,63 @@ $(document).ready(function () {
 
     // ======== مرحله ۱: اطلاعات اولیه ========
     $('#form-step-1').on('submit', function (e) {
-        e.preventDefault();
+    e.preventDefault();
 
-        const gender = $('input[name="gender"]:checked').val();
-        if (!gender) {
-            toastr.error('لطفاً جنسیت را انتخاب کنید');
-            return;
+    const gender = $('input[name="gender"]:checked').val();
+    const age = $('input[name="age"]:checked').val();
+    let mobile = $('input[name="mobile"]').val();
+
+    // نرمال‌سازی ساده موبایل
+    mobile = (''+mobile).trim()
+        .replace(/\s+/g, '')
+        .replace(/^\+98/, '0')
+        .replace(/^0098/, '0')
+        .replace(/^98/, '0')
+        .replace(/\D+/g, '');
+    if (/^9\d{9}$/.test(mobile)) mobile = '0' + mobile;
+
+    // ولیدیشن
+    if (!gender) return toastr.error('لطفاً جنسیت را انتخاب کنید');
+    if (!age || !/^(\+56|44-56|36-43|30-35|24-29|18-23)$/.test(age)) {
+        return toastr.error('لطفاً بازه سنی را درست انتخاب کنید');
+    }
+    if (!/^09\d{9}$/.test(mobile)) {
+        return toastr.error('لطفاً شماره موبایل معتبر وارد کنید (مثلاً 09xxxxxxxxx)');
+    }
+
+    const dataToSend = {
+        action: 'shec_step1',
+        _nonce: shec_ajax.nonce,
+        gender,
+        age,
+        confidence: $('select[name="confidence"]').val(),
+        mobile
+    };
+
+    console.log('[STEP1] sending:', dataToSend);
+
+    const $btn = $(this).find('button[type="submit"]').prop('disabled', true);
+
+    $.post(
+        shec_ajax.url,
+        dataToSend,
+        function (response) {
+        $btn.prop('disabled', false);
+        console.log('[STEP1] response:', response);
+
+        if (response && response.success) {
+            userId = response.data.user_id;
+            localStorage.setItem('userId', userId);
+            localStorage.setItem('gender', gender);
+            localStorage.setItem('currentStep', 2);
+            initializeStep2PatternImages(gender);
+            goToStep(2);
+        } else {
+            toastr.error((response && response.message) || 'خطا در ارسال اطلاعات');
         }
-
-        const dataToSend = {
-            action: 'shec_step1',
-            _nonce: shec_ajax.nonce,
-            gender: gender,
-            age: $('input[name="age"]:checked').val(),
-            confidence: $('select[name="confidence"]').val()
-        };
-
-        // لاگ کردن داده‌های ارسالی به کنسول
-        console.log("Data being sent to server:", dataToSend);
-        $.post(
-            shec_ajax.url,
-            {
-                action: 'shec_step1',
-                _nonce: shec_ajax.nonce,
-                gender: gender,
-                age: $('input[name="age"]:checked').val(),
-                confidence: $('select[name="confidence"]').val()
-            },
-            function (response) {
-                console.log(response);
-                if (response.success) {
-                    console.log('res',response); // لاگ گرفتن از user_id
-                    userId = response.data.user_id;
-                    localStorage.setItem('userId', userId);
-                    localStorage.setItem('gender', gender);
-                    initializeStep2PatternImages(gender);
-                    goToStep(2);
-                } else {
-                    toastr.error(response.message || 'خطا در ارسال اطلاعات');
-                }
-            },
-            'json'
-        );
+        },
+        'json'
+    );
     });
 
     // ======== مرحله ۲: الگوی ریزش ========
@@ -325,15 +357,15 @@ $(document).ready(function () {
             contentType: false,
             success: function (res) {
                 if (res.success) {
-                    console.log('Response from server:', response);
-                    const firstFile = Object.values(res.files)[0];
-                    $thumb.attr('src', firstFile).removeClass('d-none');
+                    console.log('Response from server:', res); // ✅
+                    const fileUrl = res.data?.file || res.file || res?.data || res?.file; // پوشش امن
+                    $thumb.attr('src', fileUrl).removeClass('d-none');
                     $progress.addClass('d-none');
                     $bar.css('width', '0%');
                     $box.addClass('upload-success');
 
                     const uploads = JSON.parse(localStorage.getItem('uploadedPics') || '{}');
-                    uploads[fileInput.name] = firstFile;
+                    uploads[fileInput.name] = fileUrl;
                     localStorage.setItem('uploadedPics', JSON.stringify(uploads));
                 } else {
                     toastr.error(res.message || 'خطا در آپلود');
@@ -345,37 +377,94 @@ $(document).ready(function () {
 
     // ======== مرحله ۴: سوالات پزشکی ========
     $(document).on('change', 'input[name="has_medical"]', function () {
-        $('input[name="has_medical"]').parent().removeClass('active');
-        if ($(this).is(':checked')) $(this).parent().addClass('active');
-        $('#medical-fields').toggleClass('d-none', $(this).val() !== 'yes');
+    $('#has-medical-group').removeClass('error shake');
+    $('input[name="has_medical"]').parent().removeClass('active');
+    if ($(this).is(':checked')) $(this).parent().addClass('active');
+
+    const show = $(this).val() === 'yes';
+    $('#medical-fields').toggleClass('d-none', !show)
+                        .removeClass('error shake');
+
+    // اگر نه گفت، ورودی‌های وابسته پاک شوند
+    if (!show) {
+        $('#medical-fields select[name="scalp_conditions"]').val('');
+        $('#medical-fields select[name="other_conditions"]').val('');
+    }
     });
 
+    // فعال/غیرفعال کردن گروه "دارو"
     $(document).on('change', 'input[name="has_meds"]', function () {
-        $('input[name="has_meds"]').parent().removeClass('active');
-        if ($(this).is(':checked')) $(this).parent().addClass('active');
-        $('#meds-fields').toggleClass('d-none', $(this).val() !== 'yes');
+    $('#has-meds-group').removeClass('error shake');
+    $('input[name="has_meds"]').parent().removeClass('active');
+    if ($(this).is(':checked')) $(this).parent().addClass('active');
+
+    const show = $(this).val() === 'yes';
+    $('#meds-fields').toggleClass('d-none', !show)
+                    .removeClass('error shake');
+
+    if (!show) {
+        $('#meds-fields input[name="meds_list"]').val('');
+    }
     });
 
     $('#form-step-4').submit(function (e) {
         e.preventDefault();
+
+        const hasMedical = $('input[name="has_medical"]:checked').val() || '';
+        const hasMeds    = $('input[name="has_meds"]:checked').val() || '';
+
+        // باید یکی از بله/خیر انتخاب شود
+        if (!hasMedical) {
+            markErrorAndScroll('#has-medical-group', 'لطفاً به سؤال «آیا به بیماری خاصی مبتلا هستید؟» پاسخ دهید.');
+            return;
+        }
+        if (!hasMeds) {
+            markErrorAndScroll('#has-meds-group', 'لطفاً به سؤال «آیا در حال حاضر داروی خاصی مصرف می‌کنید؟» پاسخ دهید.');
+            return;
+        }
+
+        // اگر بیماری = بله → حداقل یکی از دو لیست انتخاب شود (یا «هیچکدام»)
+        if (hasMedical === 'yes') {
+            const scalp = ($('#medical-fields select[name="scalp_conditions"]').val() || '').trim();
+            const other = ($('#medical-fields select[name="other_conditions"]').val() || '').trim();
+            if (!scalp && !other) {
+            markErrorAndScroll('#medical-fields', 'لطفاً یکی از گزینه‌های بیماری را انتخاب کنید (یا «هیچکدام» را بزنید).');
+            return;
+            }
+        }
+
+        // اگر دارو = بله → نام دارو الزامی
+        if (hasMeds === 'yes') {
+            const meds = ($('#meds-fields input[name="meds_list"]').val() || '').trim();
+            if (!meds) {
+            markErrorAndScroll('#meds-fields', 'اگر دارو مصرف می‌کنید، نام دارو را وارد کنید.', '#meds-fields input[name="meds_list"]');
+            return;
+            }
+        }
+
+        const payload = Object.assign(
+            { action: 'shec_step4', _nonce: shec_ajax.nonce },
+            $('#form-step-4').serializeArray().reduce((o, f) => (o[f.name] = f.value, o), {}),
+            { user_id: userId }
+        );
+
+        const $btn = $(this).find('button[type="submit"]').prop('disabled', true);
+
         $.post(
             shec_ajax.url,
-            Object.assign(
-                { action: 'shec_step4', _nonce: shec_ajax.nonce },
-                $('#form-step-4').serializeArray().reduce((o, field) => (o[field.name] = field.value, o), {}),
-                { user_id: userId }
-            ),
+            payload,
             function (response) {
-                console.log('Response from server5:', response);
-                if (response.success) {
-                    goToStep(5);
-                } else {
-                    toastr.error(response.message || 'خطا در مرحله ۴');
-                }
+            $btn.prop('disabled', false);
+            if (response && response.success) {
+                goToStep(5);
+            } else {
+                toastr.error((response && response.message) || 'خطا در مرحله ۴');
+            }
             },
             'json'
         );
     });
+
 
     // ======== مرحله ۵: اطلاعات تماس ========
     $(document).on('submit', '#form-step-5', function (e) {
@@ -395,7 +484,6 @@ $(document).ready(function () {
                 last_name: $('input[name="last_name"]').val(),
                 state: $('input[name="state"]').val(),
                 city: $('input[name="city"]').val(),
-                mobile: $('input[name="mobile"]').val(),
                 social: $('input[name="social"]:checked').val()
             },
             function (response) {
@@ -476,6 +564,5 @@ $(document).ready(function () {
 
     // ==================== اجرا در زمان لود صفحه ====================
     const savedGender = localStorage.getItem('gender') || 'male';
-    updateLossPatternImages(savedGender);
-    updateUploadDescriptionImages(savedGender);
+     updateUploadDescriptionImages(savedGender);
 });

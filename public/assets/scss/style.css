@@ -12017,6 +12017,26 @@ body {
     transform: rotate(360deg);
   }
 }
+toggle-group.error, #meds-fields.error, #medical-fields.error {
+  outline: 2px solid #ff5a00;
+  border-radius: 8px;
+}
+
+.shake {
+  animation: shake 0.3s linear 1;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
 .step {
   display: none;
 }
@@ -12159,6 +12179,13 @@ select:focus {
 #step-container #step-1 label {
   text-align: right;
   font-size: 15px;
+}
+#step-container #step-1 input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  direction: rtl;
+  border-radius: 5px;
+  width: 100%;
 }
 #step-container #step-1 .g-box {
   margin: 31px auto;

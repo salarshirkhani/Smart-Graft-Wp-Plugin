@@ -43,3 +43,8 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+toggle-group.error, #meds-fields.error, #medical-fields.error {
+  outline: 2px solid #ff5a00; border-radius: 8px;
+}
+.shake { animation: shake .3s linear 1; }
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
