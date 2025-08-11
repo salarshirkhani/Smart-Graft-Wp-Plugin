@@ -193,3 +193,99 @@ function custom_page_styles_for_fullscreen() {
     }
 }
 add_action('wp_head', 'custom_page_styles_for_fullscreen');
+
+
+//-------------------------------------------------AI---------------------------------------------------
+function shec_check_nonce() {
+  // ⬇️ برای لوکال، نانس را بای‌پس کن (می‌تونی بعداً برداریش)
+  $host = $_SERVER['HTTP_HOST'] ?? '';
+  if (in_array($host, ['localhost','127.0.0.1'], true)) {
+    return;
+  }
+
+  $nonce = $_POST['_nonce'] ?? '';
+  if (!wp_verify_nonce($nonce, 'shec_nonce')) {
+    error_log("[SHEC][NONCE] FAIL field='_nonce' value='{$nonce}'");
+    // به‌جای wp_die(-1) -> 403 JSON برگردونیم تا کنسول واضح ببینه
+    wp_send_json_error(['message' => 'Invalid nonce'], 403);
+  }
+}
+
+// ===== [必] DB helpers: اگر قبلاً داری، همونا بمونه
+if (!function_exists('shec_table')) {
+  function shec_table() { global $wpdb; return $wpdb->prefix.'shec_users'; }
+}
+if (!function_exists('shec_get_data')) {
+  function shec_get_data($user_id){
+    global $wpdb;
+    $json = $wpdb->get_var($wpdb->prepare("SELECT data FROM ".shec_table()." WHERE wp_user_id=%d",$user_id));
+    return $json ? json_decode($json, true) : [];
+  }
+}
+if (!function_exists('shec_update_data')) {
+  function shec_update_data($user_id, array $data){
+    global $wpdb;
+    return $wpdb->update(shec_table(), ['data'=>wp_json_encode($data)], ['wp_user_id'=>$user_id], ['%s'], ['%d']);
+  }
+}
+
+// ===== OpenAI helpers (بدون کلید هم کرش نمی‌کند)
+if (!function_exists('shec_openai_api_key')) {
+  function shec_openai_api_key() {
+    return trim((string) get_option('shec_api_key',''));
+  }
+}
+if (!function_exists('shec_openai_chat')) {
+function shec_openai_chat(array $messages, array $opts = []) {
+  $api_key = trim((string)get_option('shec_api_key',''));
+  if (!$api_key) return ['ok'=>false, 'error'=>'API key missing', 'http_code'=>0];
+
+  $models = $opts['models'] ?? [
+    $opts['model'] ?? 'gpt-4o-mini',
+    'gpt-4o',
+    'gpt-4.1-mini'
+  ];
+  $is_local = isset($_SERVER['HTTP_HOST']) && preg_match('/^(localhost|127\.0\.0\.1)(:\d+)?$/', $_SERVER['HTTP_HOST']);
+
+  $last_err = 'unknown'; $last_code = 0;
+
+  foreach ($models as $model) {
+    $body = [
+      'model'           => $model,
+      'temperature'     => $opts['temperature'] ?? 0.2,
+      'response_format' => ['type'=>'json_object'],
+      'messages'        => $messages,
+    ];
+    $res = wp_remote_post('https://api.openai.com/v1/chat/completions', [
+      'headers'  => ['Authorization'=>'Bearer '.$api_key,'Content-Type'=>'application/json'],
+      'body'     => wp_json_encode($body),
+      'timeout'  => 45,
+      'sslverify'=> $is_local ? false : true, // لوکال: مشکل SSL حل
+    ]);
+    if (is_wp_error($res)) { $last_err=$res->get_error_message(); error_log('[SHEC][OPENAI] '.$last_err); continue; }
+    $code = wp_remote_retrieve_response_code($res);
+    $raw  = wp_remote_retrieve_body($res);
+    $json = json_decode($raw, true);
+    if ($code >= 400) {
+      $msg = $json['error']['message'] ?? ("HTTP ".$code);
+      $last_err=$msg; $last_code=$code;
+      error_log("[SHEC][OPENAI] HTTP $code model=$model msg=$msg");
+      if (stripos($msg,'model')!==false || stripos($msg,'does not exist')!==false) continue; // امتحان مدل بعدی
+      break;
+    }
+    $content = $json['choices'][0]['message']['content'] ?? '';
+    return ['ok'=>true,'content'=>$content,'raw'=>$json,'http_code'=>$code,'model'=>$model];
+  }
+  return ['ok'=>false,'error'=>$last_err,'http_code'=>$last_code];
+}
+
+
+}
+if (!function_exists('shec_json_decode_safe')) {
+  function shec_json_decode_safe($str){
+    if (!is_string($str)) return null;
+    $str = preg_replace('/^```(?:json)?\s*|\s*```$/', '', trim($str));
+    $data = json_decode($str, true);
+    return is_array($data) ? $data : null;
+  }
+}

@@ -236,6 +236,13 @@
 
         <!-- Step 5: fINAL-->
         <div id="step-5" class="step d-none">
+            <div id="step5-loader" class="loader-overlay" style="display:none;">
+                <div class="spinner"></div>
+            </div>
+            <div id="ai-questions-box" class="mb-4" style="display:none">
+                <p class="d-block mb-2 fw-bold">لطفاً به چند سؤال کوتاه پاسخ دهید:</p>
+                <div id="ai-questions-list"></div>
+            </div>
             <form id="form-step-5">
                 <div class="container">
                     <p class="d-block mb-2 fw-bold">نام و نام خانوادگی خود را وارد کنید</p>

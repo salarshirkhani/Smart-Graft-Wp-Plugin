@@ -104,7 +104,29 @@ function shec_display_user_details() {
 
         // نمایش سوالات و پاسخ‌ها
         echo '<h2>سوالات و پاسخ‌ها:</h2>';
-        // اگر سوالات پرامپت را ذخیره کرده‌ایم اینجا نمایش می‌دهیم
+        $d = json_decode($row->data, true);
+        $qs = $d['ai']['followups']['questions'] ?? [];
+        $ans= $d['ai']['followups']['answers'] ?? [];
+        if ($qs) {
+            echo '<ol>';
+            foreach ($qs as $i => $q) {
+                $a = $ans[$i] ?? '';
+                echo '<li><strong>'.esc_html($q).'</strong><br><em>پاسخ کاربر:</em> '.esc_html($a ?: '—').'</li>';
+            }
+            echo '</ol>';
+        } else {
+            echo '<p>—</p>';
+        }
+
+        echo '<h2>نتیجه‌گیری هوش مصنوعی</h2>';
+        $final = $d['ai']['final'] ?? null;
+        if ($final) {
+            echo '<p><strong>روش:</strong> '.esc_html($final['method'] ?? '—').'</p>';
+            echo '<p><strong>تخمین گرافت:</strong> '.esc_html($final['graft_count'] ?? '—').'</p>';
+            echo '<p><strong>تحلیل:</strong> '.esc_html($final['analysis'] ?? '—').'</p>';
+        } else {
+            echo '<p>—</p>';
+        }  
         echo '</div>';
     } else {
         echo '<p>اطلاعات کاربر پیدا نشد.</p>';

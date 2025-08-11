@@ -22,6 +22,8 @@ $(document).ready(function () {
         $('#step2-loader').hide();  // لودینگ را مخفی می‌کنیم
         $('#form-step-2 .step-content').show();  // نمایش محتوای اصلی
     }
+    function wpUnwrap(res){ return (res && res.data) ? res.data : res; }
+
 
     function markErrorAndScroll(selector, msg, focusSelector) {
         const $el = $(selector);
@@ -457,6 +459,9 @@ $(document).ready(function () {
             $btn.prop('disabled', false);
             if (response && response.success) {
                 goToStep(5);
+                step5ShowLoader();
+                loadAiQuestions().always(step5HideLoader);
+
             } else {
                 toastr.error((response && response.message) || 'خطا در مرحله ۴');
             }
@@ -465,71 +470,202 @@ $(document).ready(function () {
         );
     });
 
+    function ensureStep5Containers(){
+        if (!$('#step5-content').length) return;
+        if (!$('#ai-questions-box').length) {
+            $('#step5-content').prepend(`
+            <div id="ai-questions-box" class="mb-4">
+                <p class="d-block mb-2 fw-bold">لطفاً به چند سؤال کوتاه پاسخ دهید:</p>
+                <div id="ai-questions-list"></div>
+            </div>
+            `);
+        }
+    }
+
+
+    function step5ShowLoader(){ $('#step5-loader').show(); $('#step5-content').hide(); }
+    function step5HideLoader(){ $('#step5-loader').hide(); $('#step5-content').show(); }
+
+    function loadAiQuestions() {
+        const uid = localStorage.getItem('userId');
+        ensureStep5Containers();
+
+        $('#ai-questions-box').removeClass('d-none').show();
+        $('#ai-questions-list').empty();
+
+        if (!uid) {
+            console.warn('[AI] no userId; showing fallback');
+            renderAiQuestionsFallback();
+            return $.Deferred().resolve().promise();
+        }
+
+        step5ShowLoader();
+
+        return $.post(shec_ajax.url, {
+            action: 'shec_ai_questions',
+            _nonce: shec_ajax.nonce,
+            user_id: uid
+        }, function(res){
+            const payload = wpUnwrap(res);            // ⬅️ مهم
+            console.log('[AI] questions debug:', payload?.debug || '(no debug)');
+
+            let qs = (payload && Array.isArray(payload.questions) && payload.questions.length === 3)
+                    ? payload.questions
+                    : null;
+
+            if (!qs) {
+            console.warn('[AI] using fallback questions');
+            renderAiQuestionsFallback();
+            } else {
+            renderAiQuestions(qs);
+            }
+        }, 'json').fail(function(xhr){
+            console.error('[AI] questions ajax fail', xhr?.status, xhr?.responseText);
+            renderAiQuestionsFallback();
+        }).always(function(){
+            step5HideLoader();
+        });
+    }
+
+
+// رندر سؤال‌ها (کمپوننت واحد)
+function renderAiQuestions(qs){
+  const $list = $('#ai-questions-list').empty();
+  (qs || []).forEach((q, i) => {
+    const idx = i + 1;
+    $list.append(`
+      <div class="followup-item mb-3" data-idx="${idx}">
+        <div class="d-block mb-2 fw-bold">${q}</div>
+        <div class="toggle-group">
+          <label class="toggle-option">
+            <input type="radio" name="followup_${idx}" value="yes" hidden>
+            <span>بله</span>
+          </label>
+          <label class="toggle-option">
+            <input type="radio" name="followup_${idx}" value="no" hidden>
+            <span>خیر</span>
+          </label>
+        </div>
+      </div>
+    `);
+  });
+}
+
+// fallback قطعی
+function renderAiQuestionsFallback(){
+  renderAiQuestions([
+    'آیا در خانواده‌تان سابقهٔ ریزش مو وجود دارد؟',
+    'آیا طی ۱۲ ماه گذشته شدت ریزش موی شما بیشتر شده است؟',
+    'آیا در حال حاضر سیگار یا قلیان مصرف می‌کنید؟'
+  ]);
+}
+
+
+
+    // فعال/غیرفعال کردن استایل toggle
+    $(document).on('change', 'input[name^="followup_"]', function(){
+    const name = $(this).attr('name');
+    $(`input[name="${name}"]`).parent().removeClass('active');
+    if ($(this).is(':checked')) $(this).parent().addClass('active');
+    });
+
+
+    // active کردن استایل toggle برای سؤالات AI
+    $(document).on('change', 'input[name^="followup_"]', function(){
+    const name = $(this).attr('name');
+    $(`input[name="${name}"]`).parent().removeClass('active');
+    if ($(this).is(':checked')) $(this).parent().addClass('active');
+    });
+
 
     // ======== مرحله ۵: اطلاعات تماس ========
     $(document).on('submit', '#form-step-5', function (e) {
-        e.preventDefault();
-        if (!userId) {
-            toastr.error('کاربر شناسایی نشد، لطفاً دوباره مراحل را شروع کنید');
-            return;
+    e.preventDefault();
+    if (!userId) {
+        toastr.error('کاربر شناسایی نشد، لطفاً دوباره مراحل را شروع کنید');
+        return;
+    }
+
+    // اعتبارسنجی سؤالات (اگر بودند)
+    const answers = [];
+    let missingIdx = 0;
+    $('#ai-questions-list .followup-item').each(function(){
+        const idx = $(this).data('idx');
+        const val = $(`input[name="followup_${idx}"]:checked`).val() || '';
+        if (!val && !missingIdx) missingIdx = idx;
+        answers.push(val || '');
+    });
+    if (missingIdx) {
+        markErrorAndScroll(`#ai-questions-list .followup-item[data-idx="${missingIdx}"]`, 'لطفاً به همهٔ سؤالات پاسخ دهید.');
+        return;
+    }
+
+    const payloadContact = {
+        action: 'shec_step5',
+        _nonce: shec_ajax.nonce,
+        user_id: userId,
+        first_name: $('input[name="first_name"]').val(),
+        last_name: $('input[name="last_name"]').val(),
+        state: $('input[name="state"]').val(),
+        city: $('input[name="city"]').val(),
+        social: $('input[name="social"]:checked').val()
+    };
+
+    const $btn = $(this).find('button[type="submit"]').prop('disabled', true);
+
+    // 1) اول تماس را ذخیره کن
+    $.post(shec_ajax.url, payloadContact, function (response) {
+        if (!response || !response.success) {
+        $btn.prop('disabled', false);
+        toastr.error((response && response.message) || 'خطا در ذخیره اطلاعات تماس');
+        return;
         }
 
-        $.post(
-            shec_ajax.url,
-            {
-                action: 'shec_step5',
-                _nonce: shec_ajax.nonce,
-                user_id: userId,
-                first_name: $('input[name="first_name"]').val(),
-                last_name: $('input[name="last_name"]').val(),
-                state: $('input[name="state"]').val(),
-                city: $('input[name="city"]').val(),
-                social: $('input[name="social"]:checked').val()
-            },
-            function (response) {
-                console.log('Response from server5:', response);
-                if (response.success) {
-                    let method = '';
-                    let graftCount = '';
-                    let analysis = '';
+        // 2) سپس finalize با پاسخ‌ها
+        $.post(shec_ajax.url, {
+        action: 'shec_finalize',
+        _nonce: shec_ajax.nonce,
+        user_id: userId,
+        answers: answers
+        }, function (fin) {
+        $btn.prop('disabled', false);
+        const d = wpUnwrap(fin);   
+        if (fin && fin.success) {
+            let method = 'FIT', graftCount = '', analysis = '';
+        try {
+        const parsed = JSON.parse(d.ai_result);  // ⬅️ از d بخوان
+        method = parsed.method || method;
+        graftCount = parsed.graft_count || '';
+        analysis = parsed.analysis || '';
+        } catch(e) {
+        analysis = d.ai_result;                // ⬅️ از d بخوان
+        }
 
-                    try {
-                        const parsed = JSON.parse(response.ai_result);
-                        method = parsed.method || 'FIT';
-                        graftCount = parsed.graft_count || '';
-                        analysis = parsed.analysis || '';
-                    } catch (err) {
-                        analysis = response.ai_result;
-                        method = 'FIT';
-                    }
+            $('#ai-result-box').html(`
+            <div class="ai-result-container">
+                <h4>روش پیشنهادی: <span class="method-text">${method}</span></h4>
+                <p class="analysis-text">${analysis}</p>
+                ${graftCount ? `<div class="graft-count-box"><strong>تخمین تعداد گرافت:</strong> ${graftCount} گرافت</div>` : ''}
+            </div>
+            `);
 
-                    $('#ai-result-box').html(`
-                        <div class="ai-result-container">
-                            <h4>روش پیشنهادی: <span class="method-text">${method}</span></h4>
-                            <p class="analysis-text">${analysis}</p>
-                            ${graftCount ? `
-                                <div class="graft-count-box">
-                                    <strong>تخمین تعداد گرافت:</strong> ${graftCount} گرافت
-                                </div>` : ''}
-                        </div>
-                    `);
+            const u = d.user || {};
+            $('#user-summary-list').html(`
+            <li><strong>نام:</strong> ${(u.contact?.first_name||'')} ${(u.contact?.last_name||'')}</li>
+            <li><strong>جنسیت:</strong> ${u.gender||''}</li>
+            <li><strong>سن:</strong> ${u.age||''}</li>
+            <li><strong>شهر:</strong> ${(u.contact?.city||'')}, ${(u.contact?.state||'')}</li>
+            `);
 
-                    let summary = `
-                        <li><strong>نام:</strong> ${response.data.user.contact.first_name} ${response.data.user.contact.last_name}</li>
-                        <li><strong>جنسیت:</strong> ${response.data.user.contact.gender}</li>
-                        <li><strong>سن:</strong> ${response.data.user.contact.age}</li>
-                        <li><strong>شهر:</strong> ${response.data.user.contact.city}, ${response.data.user.contact.state}</li>
-                    `;
-                    $('#user-summary-list').html(summary);
+            goToStep(6);
+        } else {
+            toastr.error((d && d.message) || 'خطا در نهایی‌سازی هوش مصنوعی');
+        }
+        }, 'json');
 
-                    goToStep(6);
-                } else {
-                    toastr.error(response.message || 'خطا در مرحله ۵');
-                }
-            },
-            'json'
-        );
+    }, 'json');
     });
+
 
     // ======== دانلود PDF ========
     $('#download-pdf').click(function () {
@@ -566,3 +702,16 @@ $(document).ready(function () {
     const savedGender = localStorage.getItem('gender') || 'male';
      updateUploadDescriptionImages(savedGender);
 });
+
+function markErrorAndScroll(selector, msg, focusSelector) {
+  const $el = $(selector);
+  $el.addClass('error shake');
+  if ($el.length && $el.get(0)?.scrollIntoView) {
+    $el.get(0).scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else if ($el.length) {
+    $('html, body').animate({ scrollTop: $el.offset().top - 120 }, 300);
+  }
+  if (msg) toastr.error(msg);
+  if (focusSelector) $(focusSelector).trigger('focus');
+  setTimeout(() => $el.removeClass('shake'), 400);
+}

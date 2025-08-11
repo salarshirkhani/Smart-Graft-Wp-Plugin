@@ -18,3 +18,4 @@ define( 'SHEC_URL', plugin_dir_url( __FILE__ ) );
 require_once SHEC_PATH . 'includes/helpers.php';
 require_once SHEC_PATH . 'includes/graft-estimator/ajax-handlers.php';
 require_once SHEC_PATH . 'includes/admin/admin-hair.php';
+add_action('plugins_loaded', function(){ error_log('[SHEC] plugins_loaded + ajax-handlers loaded'); });
