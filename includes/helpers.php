@@ -67,6 +67,43 @@ if ( ! function_exists('shec_is_localhost') ) {
     }
 }
 
+// minute throttle counter
+if (!function_exists('shec_bump_minute_counter')) {
+  function shec_bump_minute_counter($key, $ttl = 120) {
+    $count = (int) get_transient($key);
+    set_transient($key, $count + 1, $ttl);
+    return $count + 1;
+  }
+}
+if (!function_exists('shec_get_minute_counter')) {
+  function shec_get_minute_counter($key) { return (int) get_transient($key); }
+}
+
+// simple locks
+if (!function_exists('shec_acquire_lock')) {
+  function shec_acquire_lock($lock_key, $ttl = 30) {
+    if (get_transient($lock_key)) return false;
+    set_transient($lock_key, 1, $ttl);
+    return true;
+  }
+}
+if (!function_exists('shec_release_lock')) {
+  function shec_release_lock($lock_key) { delete_transient($lock_key); }
+}
+
+// 429 circuit breaker
+if (!function_exists('shec_rate_limited_until')) {
+  function shec_rate_limited_until() { return (int) get_transient('shec_ai_block_until') ?: 0; }
+}
+if (!function_exists('shec_set_rate_limit_block')) {
+  function shec_set_rate_limit_block($seconds) {
+    $until = time() + max(60, min((int)$seconds, 600));
+    set_transient('shec_ai_block_until', $until, $until - time());
+    return $until;
+  }
+}
+
+
 // در لوکال بای‌پس؛ در سرور اصلی حتماً نانس چک می‌شود
 if ( ! function_exists('shec_check_nonce_or_bypass') ) {
     function shec_check_nonce_or_bypass() {
