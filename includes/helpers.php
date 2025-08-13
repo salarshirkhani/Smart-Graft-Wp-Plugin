@@ -326,3 +326,26 @@ if (!function_exists('shec_json_decode_safe')) {
     return is_array($data) ? $data : null;
   }
 }
+
+//ADMIN STYLES
+add_action('wp_enqueue_scripts', function () {
+    // فقط صفحهٔ فرم را استایل بده؛ اگر شورت‌کد یا اسلاگ خاص داری، همین‌جا شرط بگذار
+    wp_enqueue_style(
+        'shec-frontend',
+        plugins_url('public/assets/scss/frontend.css', __FILE__),
+        [],
+        '1.0.0'
+    );
+});
+
+add_action('admin_enqueue_scripts', function ($hook) {
+    // فقط صفحات منوی افزونه
+    if (isset($_GET['page']) && in_array($_GET['page'], ['shec-form','shec-settings','shec-form-data'], true)) {
+        wp_enqueue_style(
+            'shec-admin',
+            plugins_url('public/assets/scss/admin.css', __FILE__),
+            [],
+            '1.0.0'
+        );
+    }
+});

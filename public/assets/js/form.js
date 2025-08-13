@@ -181,12 +181,14 @@ $(function () {
       });
     },
     renderQuestionsFallback(){
-      UI.renderQuestions([
+    UI.renderQuestions([
         'آیا در خانواده‌تان سابقهٔ ریزش مو وجود دارد؟',
         'آیا طی ۱۲ ماه گذشته شدت ریزش موی شما بیشتر شده است؟',
-        'آیا در حال حاضر سیگار یا قلیان مصرف می‌کنید؟'
-      ]);
+        'آیا در حال حاضر سیگار یا قلیان مصرف می‌کنید؟',
+        'آیا خواب و استرس شما در ماه‌های اخیر بدتر شده است؟'
+    ]);
     },
+
   };
 
   /* =========================
@@ -216,7 +218,7 @@ $(function () {
         const payload = Utils.wpUnwrap(res);
         console.log('[AI] payload:', payload);
         console.log('[AI] debug:', payload?.debug || '(no debug)');
-        const qs = (payload && Array.isArray(payload.questions) && payload.questions.length === 3) ? payload.questions : null;
+        const qs = (payload && Array.isArray(payload.questions) && payload.questions.length === 4) ? payload.questions : null;
         if (!qs) {
           UI.renderQuestionsFallback();
           if (payload?.debug && payload.debug.source !== 'openai') {
