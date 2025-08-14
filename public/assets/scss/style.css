@@ -12037,6 +12037,71 @@ toggle-group.error, #meds-fields.error, #medical-fields.error {
     transform: translateX(5px);
   }
 }
+#final-step-loader {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgb(255, 255, 255);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#final-step-loader .ai-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+#final-step-loader .spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e9e9e9;
+  border-top-color: #ff6600;
+  border-radius: 50%;
+  animation: shecSpin 0.8s linear infinite;
+}
+
+#final-loader-text {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #444;
+  font-weight: 600;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+:root {
+  --ai-accent:#ff6a00;
+  --ai-gray:#e5e7eb;
+  --ai-text:#1f2937;
+}
+
+/* اسپینر اختصاصی */
+.ai-spinner {
+  width: 64px;
+  height: 64px;
+  border: 4px solid var(--ai-gray); /* حلقهٔ خاکستری */
+  border-top-color: var(--ai-accent); /* تکهٔ رنگی */
+  border-radius: 50%;
+  animation: aiSpin 0.8s linear infinite;
+  display: block;
+  margin: 0 auto 12px;
+}
+
+@keyframes aiSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .step {
   display: none;
 }
@@ -12458,10 +12523,6 @@ select:focus {
   text-align: right;
 }
 #step-container #step-6 .result-box {
-  background: #fff3e6;
-  border: 1px solid #ff6600;
-  border-radius: 10px;
-  padding: 15px;
   font-size: 15px;
   line-height: 1.8;
   color: #333;
@@ -12487,11 +12548,7 @@ select:focus {
   color: #444;
 }
 #step-container #step-6 .ai-result-container {
-  background: #fff;
-  border: 1px solid #ff6600;
-  border-radius: 12px;
   padding: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 #step-container #step-6 .ai-result-container .method-text {
   color: #ff6600;
@@ -12670,4 +12727,214 @@ select:focus {
 
 .toast-warning {
   background-color: #ffc107 !important;
+}
+
+/* استپ 5: لودر وسط صفحه با متن زیر اسپینر */
+/* لودر فول‌اسکرین وسط صفحه */
+#step5-loader {
+  display: none; /* با JS نمایش داده می‌شود */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgb(255, 255, 255);
+  z-index: 9999;
+  display: flex;
+  align-items: center; /* وسط عمودی */
+  justify-content: center; /* وسط افقی */
+}
+
+#step5-loader .ai-loader {
+  display: flex;
+  flex-direction: column; /* متن زیر اسپینر */
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+#step5-loader .spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e9e9e9;
+  border-top-color: #ff6600;
+  border-radius: 50%;
+  animation: shecSpin 0.8s linear infinite;
+}
+
+#ai-loader-text {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #444;
+  font-weight: 600;
+  opacity: 1;
+}
+
+#ai-loader-text.smooth {
+  transition: opacity 0.25s ease;
+}
+
+@keyframes shecSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* کانتینر کلی نتیجه */
+.ai-result-container {
+  direction: rtl;
+  font-family: inherit;
+  color: #111;
+}
+
+/* هدر نارنجی */
+.ai-hero {
+  background: var(--ai-accent);
+  color: #fff;
+  border-radius: 18px;
+  padding: 28px 20px 30px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* لوگو (دایره سفید) */
+.ai-hero .ai-logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #fff;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ai-hero .ai-logo img {
+  max-width: 70%;
+  height: auto;
+}
+
+/* تیک */
+.ai-hero .ai-check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px auto 8px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* متن‌های هدر */
+.ai-hero .ai-title {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.ai-hero .ai-sub {
+  opacity: 0.9;
+  margin-top: 6px;
+}
+
+/* بخش «اطلاعات شخصی شما» */
+.ai-section-title {
+  font-weight: 800;
+  font-size: 18px;
+  margin: 22px 0 14px;
+}
+
+/* ردیفِ چیپ‌ها */
+.ai-chip-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 768px) {
+  .ai-chip-row {
+    grid-template-columns: 1fr;
+  }
+}
+/* چیپ */
+.ai-chip {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.ai-chip .ai-chip-label {
+  color: #6b7280;
+  font-size: 13px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.ai-chip .ai-chip-value {
+  font-weight: 700;
+}
+
+/* باکس نگرانی */
+.ai-note {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* جداکننده */
+.ai-divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 22px 0;
+}
+
+/* سه کارت پایین */
+.ai-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 768px) {
+  .ai-stats {
+    grid-template-columns: 1fr;
+  }
+}
+.ai-stat {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+
+.ai-stat .ai-stat-label {
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.ai-stat .ai-stat-value {
+  font-weight: 800;
+  font-size: 18px;
+  color: #1f2937;
+}
+
+.ai-stat--accent {
+  background: #fff7f2;
+  border-color: #ffd8bf;
+}
+
+.ai-stat--accent .ai-stat-value {
+  color: var(--ai-accent);
 }/*# sourceMappingURL=style.css.map */

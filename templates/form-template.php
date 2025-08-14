@@ -14,7 +14,8 @@
             <h3>ابزار هوشمند محاسبه تعداد تار مو برای کاشت</h3>
             <div class="description">
                 <div class="form-question">می&zwnj;خواهید بدانید به چند گرافت برای کاشت مو نیاز دارید؟</div>
-                <p>این ابزار با استفاده از پاسخ شما به چند سؤال کوتاه می&zwnj;تواند تعداد تار مو مورد نیاز، مدت&zwnj;زمان انجام و دوره نقاهت پس از کاشت را با دقت تخمین بزند. این ابزار تلاش می&zwnj;کند تا یک دید واقعی و شخصی&zwnj;سازی&zwnj;شده از پروسه کاشت مو به مراجعین کلینیک فخرائی ارائه دهد؛ آن&zwnj;هم در خانه و تنها با چند کلیک! <br><strong>توجه:</strong> نتایج این ابزار حدودی هستند و نمی&zwnj;توانند جایگزین مشاوره تخصصی باشند. برای دریافت برنامه درمانی اختصاصی و دقیق، پیشنهاد می&zwnj;کنیم تا از مشاوره حضوری و رایگان در کلینیک فخرائی بهره ببرید.</p>
+                <p>ابزار هوشمند کلینیک فخرائی با تکیه بر هوش مصنوعی اختصاصی و بر اساس پاسخ‌های کوتاه شما (و در صورت تمایل، تصاویر ارسالی) یک برآورد شخصی‌سازی‌شده ارائه می‌دهد: تعداد گرافت موردنیاز، روش مناسب کاشت، مدت‌زمان انجام و دوره نقاهت—همه فقط در چند کلیک.
+توجه: این نتایج تقریبی‌اند و جایگزین مشاوره تخصصی نیستند. برای برنامه درمانی دقیق، از مشاوره حضوری رایگان کلینیک فخرائی استفاده کنید.</p>
             </div>
             <div class="centrilized">
                 <button class="btn form-button" id="agree-btn">تایید و شروع</button>
@@ -237,7 +238,10 @@
         <!-- Step 5: fINAL-->
         <div id="step-5" class="step d-none">
             <div id="step5-loader" class="loader-overlay" style="display:none;">
+            <div class="ai-loader">
                 <div class="spinner"></div>
+                <div id="ai-loader-text" class="ai-loader-text"></div>
+            </div>
             </div>
             <div id="ai-questions-box" class="mb-4" style="display:none">
                 <p class="d-block mb-2 fw-bold">لطفاً به چند سؤال کوتاه پاسخ دهید:</p>
@@ -280,6 +284,14 @@
 
         <!-- Step 6: Result -->
         <div id="step-6" class="step d-none">
+            <!-- Final AI loader (step 5 -> result) -->
+            <div id="final-loader" class="loader-overlay" style="display:none;">
+            <div class="ai-loader-box">
+                <div class="spinner"></div>
+                <div id="final-loader-text" class="ai-loader-text"></div>
+            </div>
+            </div>
+
             <h3>نتیجه مشاوره</h3>
             <div id="ai-result-box" class="result-box"></div>
 
