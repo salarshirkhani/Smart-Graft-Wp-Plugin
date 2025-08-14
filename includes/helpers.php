@@ -328,24 +328,13 @@ if (!function_exists('shec_json_decode_safe')) {
 }
 
 //ADMIN STYLES
-add_action('wp_enqueue_scripts', function () {
-    // فقط صفحهٔ فرم را استایل بده؛ اگر شورت‌کد یا اسلاگ خاص داری، همین‌جا شرط بگذار
-    wp_enqueue_style(
-        'shec-frontend',
-        plugins_url('public/assets/scss/frontend.css', __FILE__),
-        [],
-        '1.0.0'
-    );
+// فقط روی صفحات افزونه استایل ادمین لود می‌شود
+add_action('admin_enqueue_scripts', function ($hook) {
+    if (empty($_GET['page'])) return;
+    $pages = ['shec-form','shec-settings','shec-form-data'];
+    if (!in_array($_GET['page'], $pages, true)) return;
+
+    $css_url = plugin_dir_url( dirname(__FILE__) ) . 'includes/admin/admin.css';
+    wp_enqueue_style('shec-admin', $css_url, [], '1.0.0');
 });
 
-add_action('admin_enqueue_scripts', function ($hook) {
-    // فقط صفحات منوی افزونه
-    if (isset($_GET['page']) && in_array($_GET['page'], ['shec-form','shec-settings','shec-form-data'], true)) {
-        wp_enqueue_style(
-            'shec-admin',
-            plugins_url('public/assets/scss/admin.css', __FILE__),
-            [],
-            '1.0.0'
-        );
-    }
-});

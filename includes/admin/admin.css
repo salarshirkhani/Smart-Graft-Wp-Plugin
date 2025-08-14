@@ -1,0 +1,107 @@
+/* ===== Smart Graft — Admin polish ===== */
+.shec-admin { direction: rtl; }
+.shec-title { margin-bottom: 10px; }
+
+/* Tabs */
+.shec-admin-tabs {
+  display: flex; gap: 8px; margin: 6px 0 16px;
+}
+.shec-admin-tabs .shec-tab {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 7px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #111827;
+  transition: background .2s ease, color .2s ease, transform .06s ease;
+}
+.shec-admin-tabs .shec-tab:hover { background: #eef2ff; transform: translateY(-1px); }
+.shec-admin-tabs .shec-tab.is-active {
+  background: #ffffff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  box-shadow: 0 5px 18px rgba(29,78,216,.10);
+}
+
+/* Card */
+.shec-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 28px rgba(17,24,39,.06);
+}
+
+/* Grid small meta */
+.shec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+  gap: 10px;
+  margin: 8px 0 18px;
+}
+.shec-subtitle { margin: 18px 0 8px; }
+
+/* Table */
+.shec-table th, .shec-table td {
+  vertical-align: middle;
+}
+.shec-table td a.button.button-primary {
+  border-radius: 8px;
+}
+
+/* Settings form */
+.shec-form .shec-field { margin-bottom: 16px; }
+.shec-form .shec-field > label {
+  display: inline-block;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.shec-form input[type="text"] {
+  width: 420px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  background: #fbfbfd;
+}
+.shec-form .shec-help {
+  margin: 0 0 6px; color: #6b7280;
+}
+.shec-form textarea {
+  width: 100%; max-width: 960px; min-height: 180px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 12px 14px;
+  background: #fbfbfd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  line-height: 1.6;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.03);
+}
+.shec-form .shec-actions { margin-top: 6px; }
+.shec-sep {
+  border: none; border-top: 1px solid #e5e7eb;
+  margin: 18px 0;
+}
+
+/* QA list + result box */
+.shec-qa { padding-right: 20px; }
+.shec-qa li { margin-bottom: 8px; }
+.shec-result {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #f9fbff);
+  padding: 12px;
+}
+.shec-analysis {
+  margin-top: 6px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;
+}
+
+/* Buttons */
+.wrap .button.button-primary {
+  background: #1976d2;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  box-shadow: 0 4px 16px rgba(25,118,210,.18);
+}
+
+th{text-align:right !important;}

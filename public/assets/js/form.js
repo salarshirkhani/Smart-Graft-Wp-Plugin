@@ -262,9 +262,11 @@ $(function () {
     if (!/^09\d{9}$/.test(mobile)) return toastr.error('شماره موبایل معتبر وارد کنید (مثلاً 09xxxxxxxxx)');
 
     const payload = {
+      user_id: LS.get('userId') || 0,   // ✅ اگر قبلاً رکورد داریم برو آپدیت
       gender, age, mobile,
       confidence: $('select[name="confidence"]').val()
     };
+
 
     const $btn = $(this).find('button[type="submit"]').prop('disabled', true);
     API.step1(payload).done(function(res){
@@ -401,36 +403,51 @@ $(function () {
   });
 
   // Step 5: contact + finalize
+  // Step 5: contact + finalize (fixed)
   $(document).on('submit', '#form-step-5', function(e){
     e.preventDefault();
-    const uid = LS.get('userId');
-    if (!uid) return toastr.error('کاربر شناسایی نشد، لطفاً دوباره مراحل را شروع کنید');
 
+    const uid = parseInt(LS.get('userId') || 0, 10);
+    if (!uid) { toastr.error('شناسه کاربر پیدا نشد. لطفاً فرم را از ابتدا شروع کنید.'); return; }
+
+    // 1) جمع‌کردن پاسخ‌های 4 سوال و الزام پاسخ‌گویی
     const answers = [];
     let missingIdx = 0;
     $('#ai-questions-list .followup-item').each(function(){
       const idx = $(this).data('idx');
       const val = $(`input[name="followup_${idx}"]:checked`).val() || '';
       if (!val && !missingIdx) missingIdx = idx;
-      answers.push(val || '');
+      answers.push(val);
     });
-    if (missingIdx) return Utils.errorScroll(`#ai-questions-list .followup-item[data-idx="${missingIdx}"]`, 'لطفاً به همهٔ سؤالات پاسخ دهید.');
+    if (missingIdx) {
+      return Utils.errorScroll(`#ai-questions-list .followup-item[data-idx="${missingIdx}"]`, 'لطفاً به همهٔ سؤالات پاسخ دهید.');
+    }
 
-    const payloadContact = {
-      user_id: uid,
-      first_name: $('input[name="first_name"]').val(),
-      last_name:  $('input[name="last_name"]').val(),
-      state:      $('input[name="state"]').val(),
-      city:       $('input[name="city"]').val(),
-      social:     $('input[name="social"]:checked').val()
-    };
+    // 2) اعتبارسنجی نام/محل/روش تماس در فرانت قبل از ارسال
+    const first_name = ($('input[name="first_name"]').val() || '').trim();
+    const last_name  = ($('input[name="last_name"]').val()  || '').trim();
+    const state      = ($('input[name="state"]').val()      || '').trim();
+    const city       = ($('input[name="city"]').val()       || '').trim();
+    const social     = $('input[name="social"]:checked').val() || '';
 
+    if (!first_name || !last_name) return toastr.error('نام و نام خانوادگی را وارد کنید.');
+    if (!state || !city)           return toastr.error('استان و شهر را وارد کنید.');
+    if (!social)                   return toastr.error('روش تماس (تماس/واتس‌اپ) را انتخاب کنید.');
+
+    const payloadContact = { user_id: uid, first_name, last_name, state, city, social };
     const $btn = $(this).find('button[type="submit"]').prop('disabled', true);
-    API.step5(payloadContact).done(function(response){
-      if (!response || !response.success) {
-        toastr.error((response && response.message) || 'خطا در ذخیره اطلاعات تماس');
+
+    // 3) اول ذخیرهٔ اطلاعات تماس
+    API.step5(payloadContact).done(function(res){
+      // ✅ پیام درست از res.data خوانده می‌شود
+      if (!res || !res.success) {
+        const d = Utils.wpUnwrap(res);
+        toastr.error((d && d.message) || 'خطا در ذخیره اطلاعات تماس');
+        $btn.prop('disabled', false);
         return;
       }
+
+      // 4) سپس نهایی‌سازی AI
       API.finalize(uid, answers).done(function(fin){
         const d = Utils.wpUnwrap(fin);
         if (fin && fin.success) {
@@ -462,10 +479,18 @@ $(function () {
         } else {
           toastr.error((d && d.message) || 'خطا در نهایی‌سازی هوش مصنوعی');
         }
-      }).fail(()=> toastr.error('خطای ارتباط در نهایی‌سازی'))
-        .always(()=> $btn.prop('disabled', false));
-    }).fail(()=> { toastr.error('خطا در ارتباط با سرور'); $btn.prop('disabled', false); });
+      }).fail(function(){
+        toastr.error('خطای ارتباط در نهایی‌سازی');
+      }).always(function(){
+        $btn.prop('disabled', false);
+      });
+
+    }).fail(function(){
+      toastr.error('خطا در ارتباط با سرور');
+      $btn.prop('disabled', false);
+    });
   });
+
 
   // PDF
   $('#download-pdf').on('click', function(){
