@@ -974,3 +974,20 @@ select{
   /* لینک‌ها پسوند URL نگیرند */
   a[href]:after { content: "" !important; }
 }
+.he-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px}
+@media(max-width:900px){.he-grid3{grid-template-columns:1fr}}
+.he-badge-card{background:#ff8a2b;color:#fff;border-radius:12px;padding:12px;text-align:center}
+.he-badge-title{opacity:.95;font-size:12px;margin-bottom:6px}
+.he-badge-value{font-size:22px;font-weight:800}
+
+.he-card{border:1px solid #ffd9b3;background:#fff7ef;border-radius:12px;padding:12px 14px;margin:12px 0}
+.he-note ul{margin:0;padding-inline-start:18px}
+
+.he-pills{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:12px 0}
+@media(max-width:900px){.he-pills{grid-template-columns:1fr}}
+.he-pill-title{margin-bottom:6px;color:#333;font-weight:700}
+.he-pill-wrap{display:flex;flex-wrap:wrap;gap:8px}
+.he-pill{background:#eee;border-radius:10px;padding:8px 10px;font-size:13px;color:#333}
+
+.he-warn-card{border:1px solid #f5c08a;background:#fff7ef;border-radius:12px;padding:12px;margin:12px 0}
+.he-warn-card p{margin:0;line-height:1.8;color:#444}

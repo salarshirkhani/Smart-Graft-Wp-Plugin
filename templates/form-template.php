@@ -246,7 +246,6 @@
             </div>
             </div>
             <div id="ai-questions-box" class="mb-4" style="display:none">
-                <p class="d-block mb-2 fw-bold">لطفاً به چند سؤال کوتاه پاسخ دهید:</p>
                 <div id="ai-questions-list"></div>
             </div>
             <form id="form-step-5">
@@ -296,8 +295,11 @@
   <!-- 👇 همین قسمت PDF می‌شود -->
   <div id="proposal-pdf-root" class="proposal-container">
     <h3>نتیجه مشاوره</h3>
+
+    <!-- خروجی هوش مصنوعی (همان قبلی) -->
     <div id="ai-result-box" class="result-box"></div>
 
+    <!-- خلاصه اطلاعات کاربر (همان قبلی) -->
     <div class="user-summary mt-4">
       <h5>خلاصه اطلاعات شما</h5>
       <ul id="user-summary-list"></ul>
@@ -309,6 +311,7 @@
     <button id="download-pdf" class="btn btn-primary">دانلود PDF</button>
   </div>
 </div>
+
 
 
 
