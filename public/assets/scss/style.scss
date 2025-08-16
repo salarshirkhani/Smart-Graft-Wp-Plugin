@@ -890,3 +890,87 @@ select{
   border-color:#ffd8bf;
 }
 .ai-stat--accent .ai-stat-value{ color:var(--ai-accent); }
+.ai-spinner-img{
+  width:100px;
+  height:100px;
+  margin:0 auto 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.ai-spinner-img img{
+  width:180px;
+  height:180px;
+  object-fit:contain;
+  animation: spinImage 1.2s linear infinite;
+}
+
+@keyframes spinImage {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.proposal-container {
+  background: #fff;
+  color: #000;
+}
+/* فقط داخل ناحیهٔ نتیجه */
+#proposal-pdf-root, #proposal-pdf-root * {
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  direction: rtl;
+  unicode-bidi: isolate;
+  /* برخی فیلترها رندر را خراب می‌کنند */
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  -webkit-text-stroke: 0 !important;
+}
+/* ===== Print-only styles ===== */
+@media print {
+  @page { size: A4; margin: 10mm; }                  /* سایز و حاشیه PDF */
+  html, body { height: auto !important; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* فونت فارسی برای چاپ */
+  @font-face {
+    font-family: 'Shabnam';
+    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam.woff2') format('woff2'),
+         url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam.woff') format('woff');
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Shabnam';
+    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam-Bold.woff2') format('woff2'),
+         url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam-Bold.woff') format('woff');
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+
+  /* جهت و فونت برای چاپ */
+  #proposal-pdf-root { direction: rtl; font-family: Shabnam, Vazirmatn, Tahoma, sans-serif; }
+
+  /* فریم تمیز با پدینگ برای کل صفحه PDF */
+  #proposal-pdf-root {
+    width: 180mm;           /* کمی کمتر از عرض A4 برای نفسِ کناره‌ها */
+    margin: 0 auto;
+    background: #fff;
+  }
+  #proposal-pdf-root .pdf-frame {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12mm;          /* پدینگ واقعی روی PDF */
+    box-shadow: none !important;
+  }
+
+  /* رنگ‌های پس‌زمینه در چاپ (این‌ها را با کلاس‌های واقعی خودت مَچ کن) */
+  .result-hero { background: #ff6a00 !important; color:#fff !important; }
+  .card        { background: #f2f5f9 !important; }
+
+  /* چیزهای اضافی توی PDF نباشه */
+  .no-print, button, .btn, #download-pdf, #reset-form { display: none !important; }
+
+  /* جلوگیری از نصف شدن کارت‌ها بین صفحات */
+  .card, .result-hero, .analysis-box { break-inside: avoid; page-break-inside: avoid; }
+
+  /* لینک‌ها پسوند URL نگیرند */
+  a[href]:after { content: "" !important; }
+}

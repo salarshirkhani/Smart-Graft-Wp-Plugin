@@ -225,7 +225,7 @@ const UI = {
    * اگر promise سریع بود → صبر تا minMs.
    * اگر promise دیرتر بود → بلافاصله بعد از اتمام آن.
    */
-  waitForAiOrTimeout(promise, minMs = 10050){
+  waitForAiOrTimeout(promise, minMs = 100){
     const dfd = jQuery.Deferred();
     const t0 = Date.now();
 
@@ -616,7 +616,7 @@ $(document).on('submit', '#form-step-5', function(e){
     const req = API.finalize(uid, answers);
 
     // حداقل ۱۰ ثانیه نمایش
-    UI.waitForAiOrTimeout(req, 10000).done(function(){
+    UI.waitForAiOrTimeout(req, 100).done(function(){
       req.done(function(fin){
         const d = Utils.wpUnwrap(fin);
         if (fin && fin.success) {
@@ -716,18 +716,129 @@ $(document).on('submit', '#form-step-5', function(e){
 
 
   // PDF
-  $('#download-pdf').on('click', function(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const resultText = $('#ai-result-box').text();
-    const userSummary = $('#user-summary-list').text();
-    doc.setFont("Helvetica");
-    doc.text("نتیجه مشاوره کاشت مو", 10, 10);
-    doc.text(resultText, 10, 20);
-    doc.text("خلاصه اطلاعات:", 10, 50);
-    doc.text(userSummary, 10, 60);
-    doc.save("diagnosis.pdf");
+// نیاز است html2canvas و jsPDF را لود کرده باشی (که قبلاً انجام دادی)
+
+async function shecBuildPdfA4(selector) {
+  const root = document.querySelector(selector);
+  if (!root) { console.error('[PDF] root not found'); return; }
+
+  // اگر فریم در صفحه نباشد، روی کلون اعمال می‌کنیم
+  const needAddFrameClass = !root.classList.contains('pdf-frame');
+
+  // --- کلون امن ---
+  const clone = root.cloneNode(true);
+  if (needAddFrameClass) clone.classList.add('pdf-frame');
+
+  // دکمه‌ها را حذف کن
+  clone.querySelectorAll('button, .btn, [data-no-pdf]').forEach(el => el.remove());
+
+  // تصاویر کراس‌دامین را نادیده بگیر (CORS)
+  clone.querySelectorAll('img').forEach(img => {
+    try {
+      const u = new URL(img.src, location.href);
+      if (u.host !== location.host) {
+        img.setAttribute('data-html2canvas-ignore','true');
+        img.style.display = 'none';
+      } else {
+        img.setAttribute('crossorigin','anonymous');
+      }
+    } catch(e){}
   });
+
+  // --- استایل و فونت داخل کلون ---
+  const style = document.createElement('style');
+  style.textContent = `
+    @font-face {
+      font-family: 'Shabnam';
+      src: url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam.woff2') format('woff2'),
+           url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam.woff') format('woff');
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Shabnam';
+      src: url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam-Bold.woff2') format('woff2'),
+           url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam-Bold.woff') format('woff');
+      font-weight: 700; font-style: bold; font-display: swap;
+    }
+    :root, body, * { font-family: Shabnam, Vazirmatn, Tahoma, sans-serif !important; }
+    #proposal-pdf-root, #proposal-pdf-root * {
+      letter-spacing: normal !important; word-spacing: normal !important;
+      unicode-bidi: isolate; text-rendering: optimizeLegibility;
+    }
+  `;
+  clone.prepend(style);
+
+  // --- استیج نامرئی برای رندر ---
+  const stage = document.createElement('div');
+  stage.style.cssText = 'position:fixed;left:-10000px;top:0;background:#fff;z-index:-1;';
+  // عرض ثابت نزدیک به A4 برای شارپ بودن (حدود 794px در 96dpi)
+  stage.style.width = '794px';
+  document.body.appendChild(stage);
+  stage.appendChild(clone);
+
+  try { await document.fonts?.ready; } catch (_) {}
+
+  // --- رندر به canvas ---
+  let canvas;
+  try {
+    canvas = await html2canvas(clone, {
+      backgroundColor: '#ffffff',
+      scale: 2,                    // کیفیت بهتر
+      useCORS: true,
+      allowTaint: true,
+      foreignObjectRendering: false,
+      logging: false,
+      removeContainer: true
+    });
+  } finally {
+    document.body.removeChild(stage);
+  }
+
+  if (!canvas) return;
+
+  // --- ساخت PDF A4 چند صفحه‌ای ---
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'mm', 'a4');
+ const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 14;
+
+      const imgW = pageW - margin*2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const pxPerPt = canvas.width / imgW;
+
+      const pageCanvas = document.createElement('canvas');
+      const pageCtx    = pageCanvas.getContext('2d');
+
+      const sliceHeightPx = Math.floor(((pageH - margin*2) * pxPerPt));
+      let rendered = 0, first = true;
+
+      while (rendered < canvas.height) {
+        const slice = Math.min(sliceHeightPx, canvas.height - rendered);
+        pageCanvas.width  = canvas.width;
+        pageCanvas.height = slice;
+
+        pageCtx.clearRect(0,0,pageCanvas.width,pageCanvas.height);
+        pageCtx.drawImage(canvas, 0, rendered, canvas.width, slice, 0, 0, canvas.width, slice);
+
+        const imgData = pageCanvas.toDataURL('image/png');
+        if (!first) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', margin, margin, imgW, (slice / pxPerPt));
+
+        first = false;
+        rendered += slice;
+      }
+  pdf.save('fakhraei-result.pdf');
+}
+
+// کلیک دانلود
+jQuery(function($){
+  $(document).on('click', '#download-pdf', function(e){
+    e.preventDefault();
+    shecBuildPdfA4('#proposal-pdf-root');
+  });
+});
+
 
   // Prev button
   $('.btn-prev').on('click', function(){

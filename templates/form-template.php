@@ -239,7 +239,9 @@
         <div id="step-5" class="step d-none">
             <div id="step5-loader" class="loader-overlay" style="display:none;">
             <div class="ai-loader">
-                <div class="spinner"></div>
+                <div class="ai-spinner-img">
+                    <img src="<?php echo $img_path . 'spinner.webp'; ?>" alt="loading" />
+                </div>
                 <div id="ai-loader-text" class="ai-loader-text"></div>
             </div>
             </div>
@@ -282,26 +284,33 @@
             </form>
         </div>
 
-        <!-- Step 6: Result -->
-        <div id="step-6" class="step d-none">
-            <!-- Final AI loader (step 5 -> result) -->
-            <div id="final-loader" class="loader-overlay" style="display:none;">
-            <div class="ai-loader-box">
-                <div class="spinner"></div>
-                <div id="final-loader-text" class="ai-loader-text"></div>
-            </div>
-            </div>
+<!-- Step 6: Result -->
+<div id="step-6" class="step d-none">
+  <div id="final-loader" class="loader-overlay" style="display:none;">
+    <div class="ai-loader-box">
+      <div class="spinner"></div>
+      <div id="final-loader-text" class="ai-loader-text"></div>
+    </div>
+  </div>
 
-            <h3>نتیجه مشاوره</h3>
-            <div id="ai-result-box" class="result-box"></div>
+  <!-- 👇 همین قسمت PDF می‌شود -->
+  <div id="proposal-pdf-root" class="proposal-container">
+    <h3>نتیجه مشاوره</h3>
+    <div id="ai-result-box" class="result-box"></div>
 
-            <div class="user-summary mt-4">
-                <h5>خلاصه اطلاعات شما</h5>
-                <ul id="user-summary-list"></ul>
-            </div>
-            <button id="reset-form" class="btn btn-danger mt-3">شروع مجدد</button>
-            <button id="download-pdf" class="btn btn-primary mt-3">دانلود PDF</button>
-        </div>
+    <div class="user-summary mt-4">
+      <h5>خلاصه اطلاعات شما</h5>
+      <ul id="user-summary-list"></ul>
+    </div>
+  </div>
+
+  <div class="actions mt-3">
+    <button id="reset-form" class="btn btn-danger">شروع مجدد</button>
+    <button id="download-pdf" class="btn btn-primary">دانلود PDF</button>
+  </div>
+</div>
+
+
 
     </div>
 </div>

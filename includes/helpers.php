@@ -41,16 +41,25 @@ function shec_enqueue_assets() {
 
     // jsPDF برای دانلود PDF
     wp_enqueue_script(
+        'html2canvas',
+        'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+        array(),
+        '1.4.1',
+        true
+    );
+
+    wp_enqueue_script(
         'jspdf',
         'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-        [],
+        array(),
         '2.5.1',
         true
     );
 
+
     // استایل و اسکریپت خود افزونه
     wp_enqueue_style( 'shec-style', SHEC_URL . 'public/assets/scss/style.css' );
-    wp_enqueue_script( 'shec-form-js', SHEC_URL . 'public/assets/js/form.js', ['jquery','toastr-js','jspdf'], '1.0.1', true );
+    wp_enqueue_script( 'shec-form-js', SHEC_URL . 'public/assets/js/form.js', ['jquery','toastr-js','jspdf','html2canvas'], '1.0.1', true );
 
     // فقط یک‌بار localize
     wp_localize_script('shec-form-js', 'shec_ajax', [
