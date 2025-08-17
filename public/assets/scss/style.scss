@@ -991,3 +991,14 @@ select{
 
 .he-warn-card{border:1px solid #f5c08a;background:#fff7ef;border-radius:12px;padding:12px;margin:12px 0}
 .he-warn-card p{margin:0;line-height:1.8;color:#444}
+
+.ai-scale-img img {
+  width: 80px; /* سایز دلخواه */
+  animation: pulseScale 10.5s infinite ease-in-out;
+}
+
+@keyframes pulseScale {
+  0%   { transform: scale(1);   opacity: 1; }
+  50%  { transform: scale(33.3); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}

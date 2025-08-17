@@ -225,7 +225,7 @@ const UI = {
    * اگر promise سریع بود → صبر تا minMs.
    * اگر promise دیرتر بود → بلافاصله بعد از اتمام آن.
    */
-  waitForAiOrTimeout(promise, minMs = 100){
+  waitForAiOrTimeout(promise, minMs = 10000){
     const dfd = jQuery.Deferred();
     const t0 = Date.now();
 
@@ -252,8 +252,10 @@ ensureFinalLoaderDom(){
     const tpl = `
       <div id="final-step-loader" class="ai-loader-overlay" style="display:none;">
         <div class="ai-loader-box">
-          <div class="ai-spinner"></div>
-          <div id="final-loader-text" class="ai-loader-text"></div>
+        <div class="ai-spinner-img ai-scale-img">
+          <img src="${shec_ajax.img_path}spinner.webp" alt="loading" />
+        </div>  
+        <div id="final-loader-text" class="ai-loader-text"></div>
         </div>
       </div>`;
     // سعی می‌کنیم داخل step-5 قرار دهیم؛ اگر نبود body
@@ -337,6 +339,23 @@ finalStepHideLoader(){
   },
 };
 
+function HE_notifyIfPending(jq, ms, opts){
+  opts = opts || {};
+  setTimeout(function(){
+    try{
+      if (jq && typeof jq.state === 'function' && jq.state() === 'pending'){
+        if (opts.toast)  { toastr.info(opts.toast); }
+        if (opts.loader) { 
+          var $box = $(opts.loader);
+          if ($box.length) {
+            $box.show();
+            if (opts.textSel) { $(opts.textSel).text(opts.loaderText || opts.toast || 'در حال پردازش...'); }
+          }
+        }
+      }
+    }catch(e){}
+  }, ms);
+}
 
   /* =========================
    * AI loader (Step 5)
@@ -546,7 +565,11 @@ $('#form-step-4').on('submit', function(e){
 
       // پرامیسِ لود سوالات + حداقل 10s نمایش لودر
       const p = loadAiQuestions(true); // حتماً Promise برگرداند
-      UI.waitForAiOrTimeout(p, 10000).always(function(){
+      HE_notifyIfPending(req, 7000, {
+        toast: 'در حال ارسال/دریافت اطلاعات… لطفاً کمی صبر کنید.',
+
+      });
+      UI.waitForAiOrTimeout(p, 9000).always(function(){
         UI.step5HideLoader();
       });
 
@@ -619,27 +642,16 @@ const HE_WARNINGS = {
   autoimmune:  "در بیماری‌های خودایمنی، بسته به نوع و فعالیت بیماری، کاشت ممکن است دشوار یا غیرقابل انجام باشد و روی پذیرش گرافت‌ها اثر بگذارد. ارزیابی تخصصی و تأیید پزشک لازم است."
 };
 
-/* ---- Helperهای کوچک و ایمن ---- */
-
-// stage از اسم فایل (الگوی شما: ol1..6 | w1..6)
-function heInferStageFromFilename(filename) {
-  if (!filename) return null;
-  const m = String(filename).toLowerCase().match(/(?:^|[\/\\])(ol|w)[-_ ]?(\d+)/);
-  if (!m || !m[2]) return null;
-  const s = parseInt(m[2], 10);
-  return Math.max(1, Math.min(6, isNaN(s) ? 1 : s));
-}
-
-function heCalcGrafts(gender, stage){
-  const key = (gender === 'female' || gender === 'زن') ? 'female' : 'male';
-  const tbl = HE_GRAFT_TABLE[key] || {};
-  const s = Number(stage||0);
-  if (tbl[s]) return tbl[s];
-  const ks = Object.keys(tbl).map(Number).sort((a,b)=>a-b);
-  if (!ks.length) return null;
-  const near = Math.min(Math.max(s||1, ks[0]), ks[ks.length-1]);
-  return tbl[near];
-}
+/* ==== هشدارهای پوستی (scalp_conditions) – جدید ==== */
+const HE_SCALP_WARNINGS = {
+  active_infection: "اگر عفونت فعال پوست سر دارید نمی‌توان بلافاصله برای کاشت مو اقدام کرد. عفونت می‌تواند زنده‌ماندن فولیکول‌ها را به خطر بیندازد و خطر عوارض پس از کاشت را افزایش دهد. متخصص پوست در کلینیک‌های فخرائی ابتدا عفونت را درمان می‌کند تا مطمئن شود پوست سر شما سالم و آماده یک عمل ایمن و موفق است.",
+  psoriasis:        "اگر پسوریازیس شما فعال است—به‌خصوص اگر نواحی وسیعی از پوست سر درگیر باشد—ابتدا باید آن را کنترل/درمان کنید. پسوریازیس فعال می‌تواند به سد پوستی آسیب بزند و در شانس بقای فولیکول‌های کاشته شده اختلال ایجاد کند. در برخی موارد ممکن است حتی کاشت مو توصیه نشود. مناسب‌بودن شرایط در جلسه تخصصی ارزیابی می‌شود.",
+  fungal_derm:      "قبل از در نظر گرفتن کاشت مو، باید درماتیت سبورئیک/عفونت قارچی کنترل شود. التهاب فعال می‌تواند روند بهبود را مختل و شانس بقای فولیکول‌های کاشته‌شده را کاهش دهد. متخصص پوست کلینیک فخرائی شما را در طول درمان همراهی می‌کند تا پوست سر برای کاشت آماده شود.",
+  folliculitis:     "اگر دچار فولیکولیت هستید، قبل از کاشت مو باید آن را درمان کنیم. فولیکولیتِ درمان‌نشده می‌تواند به عفونت و ازبین‌رفتن فولیکول‌ها منجر شود. تیم پوست کلینیک فخرائی شما را تا آماده‌شدن پوست سر برای کاشت همراهی می‌کند.",
+  areata:           "کاشت مو در مرحلهٔ فعال ریزش سکه‌ای (آلوپسی آره‌آتا) امکان‌پذیر نیست. این بیماری ممکن است باعث حملهٔ سیستم ایمنی به فولیکول‌های تازه کاشته‌شده شود. اگر بیماری درمان و برای مدت طولانی غیرفعال باشد، ممکن است بتوان کاشت را انجام داد؛ تصمیم نهایی در مشاوره تخصصی گرفته می‌شود.",
+  scarring_alo:     "آلوپسی به همراه اسکار می‌تواند میزان موفقیت پیوند را تا حدود 70٪ کاهش دهد. بافت اسکار جریان خون کمتری دارد و رشد و بقای گرافت‌ها را محدود می‌کند. ارزیابی تخصصی برای سنجش امکان/محدودیت‌ها ضروری است.",
+  scar:             "جای زخم (اسکار) روی پوست سر می‌تواند موفقیت کاشت مو را تا حدود ۷۰٪ کاهش دهد. برخی اسکارها عروق خونی ضعیفی دارند که باعث می‌شود گرافت‌ها پس از کاشت زنده نمانند. برای راهکار دقیق، ناحیه در مشاوره حضوری بررسی می‌شود."
+};
 
 // نگاشت لیبل فارسی → کلید هشدار
 function heMapLabelToWarningKey(label){
@@ -652,6 +664,85 @@ function heMapLabelToWarningKey(label){
   if (t.match(/ایمنی|HIV|شیمی/)) return 'immunodef';
   if (t.match(/خودایمنی|لوپوس|آلوپسی/)) return 'autoimmune';
   return null;
+}
+
+function heMapScalpLabelToKey(label){
+  if (!label) return null;
+  var t = String(label);
+  if (t.indexOf('عفونت فعال پوست سر') > -1)               return 'active_infection';
+  if (t.indexOf('پسوریازیس') > -1)                         return 'psoriasis';
+  if (t.indexOf('عفونت قارچی') > -1 || t.indexOf('سبورئیک') > -1) return 'fungal_derm';
+  if (t.indexOf('فولیکولیت') > -1)                         return 'folliculitis';
+  if (t.indexOf('ریزش سکه‌ای') > -1 || t.indexOf('آلوپسی آره‌آتا') > -1) return 'areata';
+  if (t.indexOf('آلوپسی به همراه اسکار') > -1)            return 'scarring_alo';
+  if (t.indexOf('جای زخم') > -1 || t.indexOf('اسکار') > -1) return 'scar';
+  if (t.indexOf('هیچکدام') > -1)                           return null;
+  return null;
+}
+
+// نرمال‌سازی جنسیت به کلید جدول
+function heNormalizeGender(g){
+  var t = (g || '').toString().toLowerCase();
+  if (t === 'female' || t === 'زن')  return 'female';
+  return 'male'; // پیش‌فرض
+}
+
+// رندر کارت‌های هشدار
+function heRenderAllWarnings(opt){
+  opt = opt || {};
+  var systemicLabels = Array.isArray(opt.systemicLabels) ? opt.systemicLabels : [];
+  var scalpLabels    = Array.isArray(opt.scalpLabels)    ? opt.scalpLabels    : [];
+  var anchorSel      = opt.anchor || '#he-medical-warning-wrap';
+
+  var host = document.querySelector(anchorSel);
+  if (!host) return;
+  host.innerHTML = '';
+
+  // سیستمیک
+  var sysKeys = Array.from(new Set(systemicLabels.map(heMapLabelToWarningKey).filter(Boolean)));
+  sysKeys.forEach(function(k){
+    var div = document.createElement('div');
+    div.className = 'he-warn-card';
+    div.innerHTML = '<p>' + (HE_WARNINGS[k] || '') + '</p>';
+    host.appendChild(div);
+  });
+
+  // پوستی
+  var scalpKeys = Array.from(new Set(scalpLabels.map(heMapScalpLabelToKey).filter(Boolean)));
+  scalpKeys.forEach(function(k){
+    var div = document.createElement('div');
+    div.className = 'he-warn-card';
+    div.innerHTML = '<p>' + (HE_SCALP_WARNINGS[k] || '') + '</p>';
+    host.appendChild(div);
+  });
+
+  host.style.display = (host.children.length ? '' : 'none');
+}
+
+
+// استخراج stage از value مثل "pattern-3"
+function heStageFromPatternValue(patternValue){
+  if (!patternValue) return null;
+  var m = String(patternValue).toLowerCase().match(/pattern[-_ ]?(\d+)/);
+  if (!m || !m[1]) return null;
+  var s = parseInt(m[1], 10);
+  if (isNaN(s)) return null;
+  if (s < 1) s = 1; if (s > 6) s = 6;
+  return s;
+}
+
+// محاسبه‌ی گرافت از جنسیت و stage
+function heGraftsFromStage(gender, stage){
+  if (!stage) return null;
+  var key = heNormalizeGender(gender);
+  var tbl = HE_GRAFT_TABLE[key] || {};
+  return tbl[stage] || null;
+}
+
+// خواندن value انتخاب‌شده از DOM (fallback)
+function heGetSelectedPatternFromDOM(){
+  var el = document.querySelector('input[name="loss_pattern"]:checked');
+  return el ? el.value : null; // مثل: "pattern-3"
 }
 
 // ستون «پیل‌ها» به‌صورت HTML
@@ -677,7 +768,7 @@ API.step5(payloadContact).done(function(res){
 
   const req = API.finalize(uid, answers);
 
-  UI.waitForAiOrTimeout(req, 100).done(function(){
+  UI.waitForAiOrTimeout(req, 10000).done(function(){
     req.done(function(fin){
       const d = Utils.wpUnwrap(fin);
       if (!(fin && fin.success)) {
@@ -691,10 +782,19 @@ API.step5(payloadContact).done(function(res){
       const last    = (u.contact && u.contact.last_name  ? u.contact.last_name  : '').trim();
       const full    = (first || last) ? (first + (first&&last?' ':'') + last) : '—';
       const ageVal  = u.age || (u.contact ? u.contact.age : '') || '—';
-      const pattern = u.loss_pattern || u.pattern || null; // e.g. "pattern-3"
+      var pattern = u.loss_pattern || u.pattern || null;  // از سرور
+      if (!pattern) { // اگر از سرور نبود، از DOM بخوان
+        pattern = heGetSelectedPatternFromDOM();
+      }
       const gender  = u.gender || (u.contact ? u.contact.gender : '') || 'male';
       const concern = (u.medical && u.medical.concern) ? u.medical.concern : '—';
       const images  = u.images || u.uploads || (answers && answers.images) || [];
+
+      // ---- محاسبه گرافت از جدول شما ----
+      var stage   = heStageFromPatternValue(pattern);           // 1..6 یا null
+      var graftN  = heGraftsFromStage(gender, stage);           // عدد یا null
+      var graftByTable = graftN ? Number(graftN).toLocaleString('fa-IR') : null;
+
 
       // ---------- Stage از عکس ----------
       var stageFromFile = null;
@@ -720,17 +820,10 @@ API.step5(payloadContact).done(function(res){
         }
       }
 
-      // ---------- انتخاب Stage نهایی ----------
-      var stage = stageFromFile || stageFromPattern || null;
 
-      // ---------- گرافت بر اساس جدول شما ----------
-      var graftsByTableNum = stage ? heCalcGrafts(gender, stage) : null;
-      var graftsByTableStr = graftsByTableNum ? Number(graftsByTableNum).toLocaleString('fa-IR') : null;
-
-      // اگر کارتِ بالایی #he-grafts داری، همین‌جا پرش کن
-      var graftBadgeEl = document.getElementById('he-grafts');
-      if (graftBadgeEl && graftsByTableStr) graftBadgeEl.textContent = graftsByTableStr;
-
+      // ---- اگر نشانِ بالایی (#he-grafts) داری، پرش کن
+      var elBadge = document.getElementById('he-grafts');
+      if (elBadge && graftByTable) elBadge.textContent = graftByTable;
       // ---------- مپ پزشکی طبق JSON واقعی شما ----------
       var med = u.medical || {};
       function splitFa(str){
@@ -749,14 +842,28 @@ API.step5(payloadContact).done(function(res){
       var sysLabels  = splitFa(med.other_conditions);    // مثل: "دیابت"
 
       // هشدارها
-      var warnKeys = Array.from(new Set(
-        [].concat(dermLabels, sysLabels).map(heMapLabelToWarningKey).filter(Boolean)
-      ));
-      var warnsHtml = warnKeys.map(function(k){
-        return '<div class="he-warn-card"><p>'+ (HE_WARNINGS[k] || '') +'</p></div>';
-      }).join('');
+      // --- لیبل‌ها از JSON شما ---
+      function splitFa(str){
+        if(!str || typeof str !== 'string') return [];
+        return str.split(/[,،;\n]/g).map(s=>s.trim()).filter(Boolean);
+      }
 
-      var showMedical = (drugsLabels.length + dermLabels.length + sysLabels.length + warnKeys.length) > 0;
+      var med        = u.medical || {};
+      var drugsLabels = (med.has_meds === 'yes')
+        ? (splitFa(med.meds_list).length ? splitFa(med.meds_list) : ['مصرف دارو'])
+        : ['عدم مصرف دارو'];
+
+      // سری دوم: بیماری پوستی
+      var dermLabels  = splitFa(med.scalp_conditions);   // مثل: "پسوریازیس"
+      // سری اول: بیماری زمینه‌ای
+      var sysLabels   = splitFa(med.other_conditions);    // مثل: "دیابت"
+
+      // به‌جای warnKeys/warnsHtml از فانکشن جدید استفاده می‌کنیم
+      // showMedical فقط برای نمایش سکشن بالا (چیپ‌ها) استفاده می‌شود
+      var showMedical = (drugsLabels.length || dermLabels.length || sysLabels.length) > 0;
+
+      // یک ID یکتا برای محل درج کارت‌های هشدار بسازیم
+      var warnHostId = 'he-medical-warning-wrap-' + Date.now();
 
       // ---------- خروجی AI ----------
       let method='FIT', graftCount='', analysis='';
@@ -772,10 +879,6 @@ API.step5(payloadContact).done(function(res){
       const duration  = 'دو جلسه هشت ساعته';
       const logoUrl   = 'https://fakhraei.clinic/wp-content/uploads/2024/02/Group-1560-300x300.png.webp';
 
-      // ---------- اولویت نمایش گرافت ----------
-      var graftAiStr = (graft && String(graft).length) ? String(graft).replace(/\B(?=(\d{3})+(?!\d))/g, '٬') : null;
-      var graftPrimaryLabel = graftsByTableStr ? 'تعداد تار موی مورد نیاز (بر اساس الگو)' : 'تعداد گرافت پیشنهادی (AI)';
-      var graftPrimaryValue = graftsByTableStr || graftAiStr || '—';
 
 
       $('#ai-result-box').html(`
@@ -819,7 +922,7 @@ API.step5(payloadContact).done(function(res){
             </div>
             <div class="ai-stat">
               <div class="ai-stat-label">تعداد گرافت پیشنهادی (AI)</div>
-              <div class="ai-stat-value">${graft}</div>
+              <div class="ai-stat-value">${graftByTable}</div>
             </div>
           </div>
 
@@ -839,7 +942,7 @@ API.step5(payloadContact).done(function(res){
                 <div class="ai-stat-value">${joinFa(sysLabels)}</div>
               </div>
             </div>
-            ${warnsHtml}
+            <div id="${warnHostId}"></div>
           ` : ''}
 
           ${analysis ? `
@@ -849,14 +952,11 @@ API.step5(payloadContact).done(function(res){
 
         </div>
       `);
-
-
-      // پایین صفحه: خلاصهٔ کاربر
-      $('#user-summary-list').empty().append(`
-        <li>نام: ${full}</li>
-        <li>جنسیت: ${(gender==='female'||gender==='زن')?'زن':'مرد'}</li>
-        <li>دغدغه: ${concern}</li>
-      `);
+        heRenderAllWarnings({
+          systemicLabels: sysLabels,   // other_conditions
+          scalpLabels: dermLabels,     // scalp_conditions
+          anchor: '#' + warnHostId
+        });
 
       UI.goToStep(6);
     }).fail(function(){
