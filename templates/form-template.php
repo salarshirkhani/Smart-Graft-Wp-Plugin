@@ -88,6 +88,7 @@
             <div class="mb-4">
                 <label class="d-block mb-2 fw-bold">برای کاشت مو چقدر قطعیت دارید؟</label>
                 <select name="confidence" class="form-select mx-auto" style="padding: 10px;border: 1px solid #ff6600;">
+                    <option value="">انتخاب کنید</option>    
                     <option value="ریزش مو دارم و نمیدونم الان باید بکارم یا نه!">ریزش مو دارم و نمیدونم الان باید بکارم یا نه!</option>
                     <option value="می‌خوام مو بکارم اما دارم در این مورد تحقیق می‌کنم.">می‌خوام مو بکارم اما دارم در این مورد تحقیق می‌کنم.</option>
                     <option value="تصمیمم رو گرفتم و دنبال یه کلینیک خوب می‌گردم.">تصمیمم رو گرفتم و دنبال یه کلینیک خوب می‌گردم.</option>
@@ -115,7 +116,7 @@
 
                     <?php for( $i=1 ; $i<=6 ; $i++){ ?>
                         
-                    <div class="col-12 col-md-6">
+                    <div class="col-6 col-md-6">
                         <label class="pattern-option w-100 text-center">
                         <input type="radio" name="loss_pattern" value="pattern-<?php echo $i; ?>" hidden>
                         <img src="#" data-colored="" data-gray="" class="pattern-img img-fluid">
@@ -166,6 +167,7 @@
                 <div class="mb-4">
                     <label class="d-block mb-2 fw-bold">نگرانی و دغدغه اصلی شما برای انجام کاشت مو کدام است؟</label>
                     <select name="concern" class="form-select mx-auto" style="padding: 10px;border: 1px solid #ff6600;">
+                        <option value="">انتخاب کنید</option>    
                         <option value="مطمئن نیستم نتیجه کاشت خوب بشه یا نه.">مطمئن نیستم نتیجه کاشت خوب بشه یا نه.</option>
                         <option value="نگرانم نتیجه نهایی خیلی طول بکشه.">نگرانم نتیجه نهایی خیلی طول بکشه.</option>
                         <option value="نگرانم دوران نقاهت سختی داشته باشه.">نگرانم دوران نقاهت سختی داشته باشه.</option>
@@ -303,9 +305,90 @@
     <div id="ai-result-box" class="result-box"></div>
 
     <!-- خلاصه اطلاعات کاربر (همان قبلی) -->
-    <div class="user-summary mt-4">
-      <h5>خلاصه اطلاعات شما</h5>
-      <ul id="user-summary-list"></ul>
+    <div class="sample-info-wrapper">
+    <p style="font-size:20px; font-weight:bold; text-align:center;">شما هم می‌توانید ظاهر خود را متحول کنید!</p>
+    <img class="sample-image" src="https://fakhraei.clinic/wp-content/uploads/2025/06/BEFORE_Miss.webp" style="width: 100%;border-radius: 5px;" /></div>
+    <div class="hair-trans-wrapper"><img src="https://fakhraei.clinic/wp-content/uploads/2025/06/FIT1-1-scaled-1.png" style="width: 100%;border-radius: 5px;" alt="کاشت مو" /></div>
+    <div class="fit-timeline-wrapper">
+    <p style="font-size:20px; font-weight:bold; text-align:center;">جدول زمانی پیش‌بینی نتایج کاشت مو (تکنیک FIT)</p>
+    <table class="fit-timeline-table">
+    <thead>
+    <tr>
+    <th>بازه زمانی</th>
+    <th>چه چیزی انتظار می‌رود؟</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>روز ۱ تا ۷</td>
+    <td>قرمزی و کمی تورم طبیعی است. این علائم به مرور کاهش می‌یابند.</td>
+    </tr>
+    <tr>
+    <td>هفته ۲ تا ۳</td>
+    <td>موهای کاشته‌شده به‌طور موقت می‌ریزند (شوک ریزش)؛ که کاملاً طبیعی است.</td>
+    </tr>
+    <tr>
+    <td>ماه ۱ تا ۲</td>
+    <td>پوست سر به حالت عادی برمی‌گردد اما هنوز موهای جدید قابل‌مشاهده نیستند.</td>
+    </tr>
+    <tr>
+    <td>ماه ۳ تا ۴</td>
+    <td>شروع رشد موهای جدید؛ معمولاً نازک و ضعیف هستند.</td>
+    </tr>
+    <tr>
+    <td>ماه ۵ تا ۶</td>
+    <td>بافت موها قوی‌تر می‌شود و تراکم بیشتری پیدا می‌کنند.</td>
+    </tr>
+    <tr>
+    <td>ماه ۷ تا ۹</td>
+    <td>موها ضخیم‌تر، متراکم‌تر و طبیعی‌تر می‌شوند؛ تغییرات واضح‌تر خواهند بود.</td>
+    </tr>
+    <tr>
+    <td>ماه ۱۰ تا ۱۲</td>
+    <td>۸۰ تا ۹۰ درصد نتیجه نهایی قابل مشاهده است.</td>
+    </tr>
+    <tr>
+    <td>ماه ۱۲ به بعد</td>
+    <td>موها کاملاً تثبیت می‌شوند؛ نتیجه نهایی طبیعی و ماندگار خواهد بود.</td>
+    </tr>
+    </tbody>
+    </table>
+    </div>
+    <div class="why-padra-wrapper">
+    <p style="font-size:20px; font-weight:bold; text-align:center;margin-top: 50px;">چرا کلینیک فخرائی را انتخاب کنیم؟</p>
+    <div class="why-padra-item"><img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Black-White-Yellow-Simple-Initial-Name-Logo-22-1.png" alt="" />
+    <div class="why-padra-info"><span class="why-padra-info-title">تیم حرفه‌ای و با تجربه</span>
+    <p class="why-padra-info-description">کاشت مو در کلینیک فخرائی توسط تکنسین‌های آموزش‌دیده و زیر نظر پزشک متخصص انجام می‌شود.</p>
+    </div>
+    </div>
+    <div class="why-padra-item"><img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003350.png" alt="" />
+    <div class="why-padra-info"><span class="why-padra-info-title">روزانه بیش از ۷۰۰ عمل موفق</span>
+    <p class="why-padra-info-description">با سابقه‌ای بیش از ۲۰ سال و هزاران کاشت موفق، به‌خوبی می‌دانیم چگونه نتیجه‌ای طبیعی و ماندگار به دست آوریم.</p>
+    </div>
+    </div>
+    <div class="why-padra-item"><img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003557.png" alt="" />
+    <div class="why-padra-info"><span class="why-padra-info-title">تعرفه‌ منصفانه با حفظ کیفیت</span>
+    <p class="why-padra-info-description">ما تلاش می‌کنیم بهترین تکنولوژی و تخصص را با هزینه‌ای منطقی ارائه دهیم؛ بدون افت در کیفیت یا نتیجه.</p>
+    </div>
+    </div>
+    <div class="why-padra-item"><img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003353.png" alt="" />
+    <div class="why-padra-info"><span class="why-padra-info-title">محیط راحت و امکانات کامل </span>
+    <p class="why-padra-info-description">فضایی آرام، بهداشتی و مجهز در کنار تجربه‌ای مطمئن، برای همراهی‌تان فراهم کرده‌ایم.</p>
+    </div>
+    </div>
+    <div class="why-padra-item"><img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003563.png" alt="" />
+    <div class="why-padra-info"><span class="why-padra-info-title">اقامت رایگان برای مراجعین از شهرهای دیگر</span>
+    <p class="why-padra-info-description">در کلینیک فخرائی، اقامت برای مراجعین از سایر شهرها رایگان است.</p>
+    </div>
+    </div>
+    <div class="why-padra-item"><img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/bihesi.png" alt="" />
+    <div class="why-padra-info"><span class="why-padra-info-title">بدون درد و با آرامش</span>
+    <p class="why-padra-info-description">فرایند درمان با استفاده از داروهای بی‌حسی و تکنیک‌های جدید انجام می‌شود تا کاشتی بدون درد را تجربه کنید.</p>
+    </div>
+    </div>
+    <div class="why-padra-item"><img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003351.png" alt="" />
+    <div class="why-padra-info"><span class="why-padra-info-title">همراهی واقعی، قبل تا بعد از عمل</span>
+    <p class="why-padra-info-description">از مشاوره و ارزیابی اولیه تا مراقبت‌های پس از عمل، همیشه در کنار شما هستیم.</p>
     </div>
   </div>
 

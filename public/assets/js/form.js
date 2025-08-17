@@ -75,7 +75,7 @@ const UI = {
       UI.loadUploadedThumbs();
       UI.updateUploadHints(gender);
     }
-    if (step === 6) LS.del('currentStep');
+    //if (step === 6) LS.del('currentStep');
   },
 
   loadStep2Images(){
@@ -565,11 +565,7 @@ $('#form-step-4').on('submit', function(e){
 
       // پرامیسِ لود سوالات + حداقل 10s نمایش لودر
       const p = loadAiQuestions(true); // حتماً Promise برگرداند
-      HE_notifyIfPending(req, 7000, {
-        toast: 'در حال ارسال/دریافت اطلاعات… لطفاً کمی صبر کنید.',
-
-      });
-      UI.waitForAiOrTimeout(p, 9000).always(function(){
+      UI.waitForAiOrTimeout(p, 100).always(function(){
         UI.step5HideLoader();
       });
 
@@ -921,7 +917,7 @@ API.step5(payloadContact).done(function(res){
               <div class="ai-stat-value">${methodTxt}</div>
             </div>
             <div class="ai-stat">
-              <div class="ai-stat-label">تعداد گرافت پیشنهادی (AI)</div>
+              <div class="ai-stat-label">تعداد تار موی پیشنهادی</div>
               <div class="ai-stat-value">${graftByTable}</div>
             </div>
           </div>
