@@ -56,16 +56,24 @@ function shec_enqueue_assets() {
         true
     );
 
+    wp_enqueue_script(
+        'dotlottie',
+        'https://unpkg.com/@lottiefiles/dotlottie-wc/dist/dotlottie-wc.umd.js',
+        [],
+        null,
+        true
+    );
 
     // استایل و اسکریپت خود افزونه
     wp_enqueue_style( 'shec-style', SHEC_URL . 'public/assets/scss/style.css' );
-    wp_enqueue_script( 'shec-form-js', SHEC_URL . 'public/assets/js/form.js', ['jquery','toastr-js','jspdf','html2canvas'], '1.0.1', true );
+    wp_enqueue_script( 'shec-form-js', SHEC_URL . 'public/assets/js/form.js', ['jquery','toastr-js','jspdf','html2canvas','dotlottie'], '1.0.1', true );
 
     // فقط یک‌بار localize
     wp_localize_script('shec-form-js', 'shec_ajax', [
         'url'      => admin_url('admin-ajax.php'),
         'nonce'    => wp_create_nonce('shec_nonce'),
         'img_path' => plugins_url('../public/assets/img/', __FILE__),
+        'max_upload_mb' => (int) floor(wp_max_upload_size()/1048576),
     ]);
 }
 

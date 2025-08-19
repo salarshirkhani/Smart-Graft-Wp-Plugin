@@ -128,22 +128,69 @@ if (!function_exists('shec_prompt_final_default')) {
   function shec_prompt_final_default() {
     return <<<EOT
 # نقش شما
-شما دستیار متخصص کاشت مو هستید. فقط JSON برگردان.
+شما دستیار متخصص کاشت مو در کلینیک فخرائی هستید. فقط و فقط JSON معتبر برگردان.
 
-# خروجی لازم
-{"method":"FIT|FUT|Micro|Combo","graft_count":2200,"analysis":"<=120 کلمه فارسی، دوستانه و غیرتخصصی"}
+# خروجی لازم (دقیقاً همین کلیدها)
+{
+  "method": "FIT",
+  "graft_count": 0,
+  "analysis": "<تحلیل کوتاه 100 تا 160 کلمه فارسی، دوستانه و همدلانه>",
+  "pattern_explain": {
+    "label": "Norwood 5 | Ludwig II | …",
+    "what_it_is": "<توضیح خیلی کوتاه و قابل‌فهم از الگو>",
+    "why_happens": "<علت‌های معمول: ژنتیک/هورمون/سبک زندگی؛ خیلی کوتاه>",
+    "fit_ok": true,
+    "note": "<اگر Norwood 1 یا Ludwig I است: معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود؛ در غیر این صورت خالی>"
+  },
+  "concern_box": "<پاسخ همدلانه و آرام‌کننده دقیقاً متناسب با دغدغه‌ی کاربر؛ از دعوت مستقیم به مراجعه خودداری کن مگر در یک جمله‌ی پایانی اختیاری>",
+  "followups": [
+    {"q":"<سؤال 1>","a":"بله|خیر","tip":"<یک توصیه‌ی عملی و کوتاه بر اساس پاسخ>"},
+    {"q":"<سؤال 2>","a":"بله|خیر","tip":"<…>"},
+    {"q":"<سؤال 3>","a":"بله|خیر","tip":"<…>"},
+    {"q":"<سؤال 4>","a":"بله|خیر","tip":"<…>"}
+  ],
+  "pre_op": ["<۰ تا ۳ توصیه‌ی کوتاه پیش از کاشت کاملاً متناسب با پاسخ‌ها>"],
+  "post_op":["<۰ تا ۳ توصیه‌ی کوتاه پس از کاشت کاملاً متناسب با پاسخ‌ها>"]
+}
 
-# قواعد
-- بر اساس همه‌ی داده‌ها (سن/جنس/الگو/پرونده پزشکی/پاسخ‌های بله‌خیر/تصاویر) جمع‌بندی کن.
-- اگر عدم‌قطعیت داری، در analysis کوتاه اشاره کن.
-- فقط JSON خروجی بده.
+# قواعد مهم
+- تمام پاسخ‌ها فارسی و محاوره‌ای-مودبانه باشد؛ لحن حتماً همدلانه و مطمئن‌کننده.
+- method همیشه "FIT" باشد. (کلینیک فقط FUE/FIT انجام می‌دهد؛ از FUT یا روش‌های دیگر نام نبر.)
+- graft_count را 0 بگذار؛ این عدد را سیستم محاسبه می‌کند.
+- analysis: 100 تا 160 کلمه، دوستانه، بدون اصطلاحات پیچیده؛ حتماً شامل:
+  1) اشاره‌ی ساده به علت احتمالی ریزش (ژنتیک/هورمونی/استرس…)
+  2) اطمینان‌بخشی درباره‌ی نتیجه‌ی طبیعی و تراکم مناسب در کلینیک فخرائی
+  3) 2–3 پیشنهاد ساده تا زمان کاشت (مثال: شامپوی ملایم، پرهیز از سیگار/قلیان، خواب کافی)
+  4) جمع‌بندی روشن که مسیر درمان مشخص و قابل پیگیری است
+- concern_box: دقیقاً به دغدغه‌ی ثبت‌شده‌ی کاربر واکنش نشان بده و همدلی کن. نمونه‌ی برخورد:
+  * «هزینه»: اطمینان بده برآورد شفاف و برنامه‌ی مالی منطقی داریم و کیفیت اولویت است.
+  * «درد»: بی‌حسی موضعی و پایش مداوم؛ تجربه‌ی درد ناچیز.
+  * «نقاهت»: کوتاه و قابل‌مدیریت با راهنمای مرحله‌به‌مرحله.
+  * «طول کشیدن نتیجه»: رشد مو مرحله‌ای است و از ماه‌های اول تغییرات شروع می‌شود.
+  * اگر دغدغه‌ی دیگری بود، باز هم همدلانه، کوتاه و مشخص پاسخ بده.
+- pattern_explain:
+  * اگر gender=male → از loss_pattern مثل "pattern-5" به Norwood 5 تبدیل کن؛ بازه را 1..6 در نظر بگیر.
+  * اگر gender=female → "pattern-x" را تقریبی به Ludwig I (x∈{1,2})، Ludwig II (x∈{3,4})، Ludwig III (x∈{5,6}) نگاشت کن.
+  * اگر Norwood 1 یا Ludwig I بود: در note بگو «معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود».
+  * fit_ok برای تمام موارد بجز Norwood 1/Ludwig I true باشد؛ برای آن‌ها true بماند ولی در note توضیح احتیاطی بده.
+- followups:
+  * ورودی شامل followups با جفت‌های q/a است. همان سؤال‌ها را تکرار کن، مقدار a را به «بله/خیر» نگاشت کن (نه yes/no).
+  * برای هر مورد یک "tip" کاملاً مرتبط و کوتاه بنویس (مثلاً برای سیگار: پرهیز ۱۰ روز قبل و ۷ روز بعد؛ برای استرس/خواب: روتین آرام‌سازی و خواب منظم؛ برای التهاب/عفونت: ابتدا درمان سپس کاشت؛ برای بدترشدن روند: درمان نگه‌دارنده قبل از کاشت).
+- pre_op و post_op:
+  * عمومی ننویس؛ ۰ تا ۳ توصیه‌ی خیلی کوتاه، دقیقاً مبتنی بر پاسخ‌های همان کاربر (اگر سیگار=بله → پرهیز دخانیات؛ اگر خواب ناکافی=بله → بهداشت خواب؛ اگر التهاب=بله → اول کنترل التهاب).
+- از جملات کلی مثل «برای نتیجه دقیق‌تر حضوری بیا» خودداری کن؛ فقط در یک جملهٔ پایانیِ اختیاری و مودبانه می‌توانی پیشنهاد مشاوره بدهی.
+- هیچ متن اضافه، توضیح، Markdown یا کدبلاک نده. فقط JSON شیء واحد.
 
 # ورودی
 اطلاعات بیمار (JSON):
 {{PACK_JSON}}
+
+# فقط JSON
+
 EOT;
   }
 }
+
 if (!function_exists('shec_get_prompt_questions')) {
   function shec_get_prompt_questions(){ $p=get_option('shec_prompt_questions',''); return $p ?: shec_prompt_questions_default(); }
 }
@@ -338,6 +385,9 @@ add_action('wp_ajax_nopriv_shec_step5','shec_handle_step5');
 /* ---------------------------------
  * AI QUESTIONS (store into DB)
  * --------------------------------- */
+/* ---------------------------------
+ * AI QUESTIONS (store into DB) — robust 4-questions
+ * --------------------------------- */
 if (!function_exists('shec_ai_questions')) {
   function shec_ai_questions() {
     shec_check_nonce_or_bypass();
@@ -348,18 +398,18 @@ if (!function_exists('shec_ai_questions')) {
     $data = shec_get_data($uid);
     if (!$data) wp_send_json_error(['message'=>'داده‌ای برای این کاربر پیدا نشد']);
 
+    // خلاصهٔ پایدار برای کش
     $summary = [
       'gender'        => $data['gender'] ?? null,
       'age'           => $data['age'] ?? null,
       'confidence'    => $data['confidence'] ?? null,
       'loss_pattern'  => $data['loss_pattern'] ?? null,
       'medical'       => $data['medical'] ?? null,
-      'uploads_count' => isset($data['uploads']) && is_array($data['uploads']) ? count($data['uploads']) : 0,
+      'uploads_count' => (isset($data['uploads']) && is_array($data['uploads'])) ? count($data['uploads']) : 0,
     ];
+    $fp = sha1( wp_json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) );
 
-    $fp = sha1(wp_json_encode([$summary['gender'],$summary['age'],$summary['loss_pattern'],$summary['medical']], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
-
-    // کش ۴تایی معتبر
+    // کش اگر ۴ تا معتبر و تازه
     $prev = $data['ai']['followups'] ?? [];
     if (!empty($prev['questions']) && count((array)$prev['questions']) === 4
         && ($prev['fp'] ?? '') === $fp
@@ -371,34 +421,89 @@ if (!function_exists('shec_ai_questions')) {
       ]);
     }
 
-    // fallback
+    // fallback ثابت
     $fallback = [
       'آیا در خانواده‌تان سابقهٔ ریزش مو وجود دارد؟',
       'آیا طی ۱۲ ماه گذشته شدت ریزش موی شما بیشتر شده است؟',
       'آیا در حال حاضر سیگار یا قلیان مصرف می‌کنید؟',
       'آیا خواب و استرس شما در ماه‌های اخیر بدتر شده است؟'
     ];
+
     $questions = null;
-    $debug = ['marker'=>'aiq_dyn4','source'=>'fallback','error'=>null];
+    $debug = ['marker'=>'aiq_dyn4','source'=>'fallback','error'=>null,'retry'=>0];
+
+    // پرامپت (اول از تنظیمات، بعد پیش‌فرض)
+    $prompt_template = shec_get_prompt_questions();
+    $summary_json    = wp_json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    if (strpos($prompt_template, '{{SUMMARY_JSON}}') !== false) {
+      $prompt_user = str_replace('{{SUMMARY_JSON}}', $summary_json, $prompt_template);
+    } else {
+      $prompt_user = $prompt_template . "\n\nخلاصهٔ بیمار (JSON):\n" . $summary_json;
+    }
 
     if (shec_openai_api_key()) {
-      $prompt_user = shec_render_template(shec_get_prompt_questions(), ['SUMMARY_JSON' => $summary]);
-      $resp = shec_openai_chat([['role'=>'user','content'=>$prompt_user]], ['temperature'=>0.4]);
+      // تماس ۱ با system سخت‌گیر و response_format=json_object (تو shec_openai_chat هم ست می‌کنی)
+      $resp = shec_openai_chat(
+        [
+          ['role'=>'system','content'=>'فقط یک شیء JSON معتبر برگردان. دقیقا با کلید "questions" و آرایه‌ای از ۴ رشتهٔ کوتاه فارسی. هیچ متن اضافه‌ای ننویس.'],
+          ['role'=>'user',  'content'=>$prompt_user],
+        ],
+        ['temperature'=>0.0]
+      );
 
       if ($resp['ok']) {
-        $parsed = shec_json_decode_safe($resp['content']);
-        $q = is_array($parsed['questions'] ?? null) ? array_values(array_filter(array_map('trim',$parsed['questions']))) : [];
-        if (count($q) === 4) { $questions = $q; $debug['source'] = 'openai'; }
-        else { $debug['error'] = 'bad JSON shape (need 4 questions)'; }
-      } else { $debug['error'] = $resp['error'] ?? 'openai call failed'; }
-    } else { $debug['error'] = 'no api key'; }
+        $raw    = (string)($resp['content'] ?? '');
+        $parsed = shec_json_force_decode_object($raw);
+        $q      = shec_extract_questions_from_json($parsed);   // ← کلیدهای جایگزین و آرایهٔ آبجکت/رشته را هندل می‌کند
+        $q      = shec_ensure_four_questions($q, $fallback);   // ← همیشه ۴تا می‌کند (زیاد=برش، کم=پر)
+        if (count($q) === 4) {
+          $questions = $q;
+          $debug['source'] = 'openai';
+        } else {
+          $debug['error'] = 'normalize-fail-after-openai';
+        }
+      } else {
+        $debug['error'] = $resp['error'] ?? 'openai call failed';
+      }
 
-    if (!$questions || count($questions) !== 4) $questions = $fallback;
+      // اگر بار اول به ۴ نرسید → یک ریتری با دستور کوتاه‌تر و صریح‌تر
+      if (!$questions || count($questions)!==4) {
+        $debug['retry'] = 1;
+        $resp2 = shec_openai_chat(
+          [
+            ['role'=>'system','content'=>'Return ONLY this exact JSON shape in Persian and nothing else: {"questions":["","","",""]}'],
+            ['role'=>'user','content'=>"با توجه به این خلاصهٔ بیمار، فقط ۴ سؤال کوتاه بله/خیر بده:\n".$summary_json],
+          ],
+          ['temperature'=>0.0]
+        );
+        if ($resp2['ok']) {
+          $raw2   = (string)($resp2['content'] ?? '');
+          $parsed2= shec_json_force_decode_object($raw2);
+          $q2     = shec_extract_questions_from_json($parsed2);
+          $q2     = shec_ensure_four_questions($q2, $fallback);
+          if (count($q2)===4) { $questions=$q2; $debug['source']='openai'; }
+          else { $debug['error'] = 'normalize-fail-after-retry'; }
+        } else {
+          $debug['error'] = ($debug['error'] ?: '') . ' | retry: ' . ($resp2['error'] ?? 'openai retry failed');
+        }
+      }
+    } else {
+      $debug['error'] = 'no api key';
+    }
+
+    // اگر هنوز ۴تا نشد → باگ نکن، fallback بده ولی لاگِ دلیل حفظ بشه
+    if (!$questions || count($questions)!==4) {
+      $questions = shec_ensure_four_questions((array)$questions, $fallback);
+      $debug['source'] = 'openai+repair';
+      if (defined('WP_DEBUG') && WP_DEBUG && !empty($debug['error'])) {
+        error_log('[shec_ai_questions] repair: '. print_r($debug,true));
+      }
+    }
 
     // ذخیره در DB
     if (!isset($data['ai'])) $data['ai'] = [];
     $data['ai']['followups'] = [
-      'questions'    => $questions,
+      'questions'    => array_values($questions),
       'generated_at' => time(),
       'fp'           => $fp,
       'source'       => $debug['source']
@@ -408,6 +513,96 @@ if (!function_exists('shec_ai_questions')) {
     wp_send_json_success(['questions'=>$questions, 'debug'=>$debug, 'summary'=>$summary]);
   }
 }
+
+/* ===== Helpers (paste once) ===== */
+
+/** JSON را «هر طور شده» به شیء تبدیل می‌کند (کدبلاک/متن اضافه را می‌بُرد) */
+if (!function_exists('shec_json_force_decode_object')) {
+  function shec_json_force_decode_object($text) {
+    $text = trim((string)$text);
+    $text = preg_replace('~^```(?:json)?\s*|\s*```$~u', '', $text); // حذف ```json
+    $j = json_decode($text, true);
+    if (is_array($j)) return $j;
+    if (preg_match('~\{(?:[^{}]|(?R))*\}~su', $text, $m)) {
+      $j = json_decode($m[0], true);
+      if (is_array($j)) return $j;
+    }
+    // احتمالاً مدل با \n تفکیک کرده؛ برگردانیم تا extractor هندل کند
+    return ['__raw'=>$text];
+  }
+}
+
+/** از ساختارهای مختلف questions را بیرون می‌کشد: کلیدهای جایگزین، آرایهٔ آبجکت، یا متن خط‌به‌خط */
+if (!function_exists('shec_extract_questions_from_json')) {
+  function shec_extract_questions_from_json($parsed) {
+    $arr = [];
+
+    // ۱) اگر شیء است: دنبال کلیدهای رایج
+    if (is_array($parsed)) {
+      $candidates = ['questions','سوالات','پرسش‌ها','qs','items','list'];
+      foreach ($candidates as $k) {
+        if (isset($parsed[$k])) { $arr = $parsed[$k]; break; }
+      }
+      // اگر هنوز هیچ چیز: شاید خودِ parsed آرایه باشد
+      if (!$arr && array_keys($parsed)===range(0,count($parsed)-1)) {
+        $arr = $parsed;
+      }
+      // اگر هنوز هیچ چیز و __raw داریم: سعی کن خط به خط جدا کنی
+      if (!$arr && !empty($parsed['__raw']) && is_string($parsed['__raw'])) {
+        $lines = preg_split('~\r?\n+~', $parsed['__raw']);
+        $arr = array_values(array_filter(array_map('trim', $lines)));
+      }
+    }
+
+    // ۲) اگر اعضای آرایه آبجکت بودن، فیلدهای متعارف را بردار
+    $out = [];
+    if (is_array($arr)) {
+      foreach ($arr as $it) {
+        if (is_string($it)) {
+          $out[] = $it;
+        } elseif (is_array($it)) {
+          $cand = $it['q'] ?? ($it['text'] ?? ($it['title'] ?? ($it['label'] ?? '')));
+          if ($cand !== '') $out[] = $cand;
+        }
+      }
+    }
+
+    // ۳) تمیزکاری (حذف شماره‌گذاری/تکراری/کوتاه‌سازی)
+    return shec_clean_questions_array($out);
+  }
+}
+
+/** تمیزسازی و یکتا و کوتاه‌سازی رشته‌ها */
+if (!function_exists('shec_clean_questions_array')) {
+  function shec_clean_questions_array($arr) {
+    if (!is_array($arr)) return [];
+    $out = [];
+    foreach ($arr as $x) {
+      $s = trim((string)$x);
+      // حذف شماره‌گذاری ابتدایی: "1) "، "۱. "، "- "، "• "
+      $s = preg_replace('~^\s*([0-9۰-۹]+[\)\.\-:]|\-|\•)\s*~u', '', $s);
+      // کوتاه‌سازی خیلی طولانی‌ها
+      if (mb_strlen($s,'UTF-8') > 140) $s = mb_substr($s, 0, 140, 'UTF-8').'…';
+      if ($s !== '' && !in_array($s, $out, true)) $out[] = $s;
+    }
+    return $out;
+  }
+}
+
+/** تضمین دقیقاً ۴ سؤال: زیاد→برش، کم→با fallback پُر */
+if (!function_exists('shec_ensure_four_questions')) {
+  function shec_ensure_four_questions($arr, $fallback) {
+    $arr = shec_clean_questions_array($arr);
+    if (count($arr) >= 4) return array_slice($arr, 0, 4);
+    foreach ($fallback as $f) {
+      if (!in_array($f, $arr, true)) $arr[] = $f;
+      if (count($arr) >= 4) break;
+    }
+    while (count($arr) < 4) $arr[] = $fallback[0]; // بسیار نادر
+    return $arr;
+  }
+}
+
 add_action('wp_ajax_shec_ai_questions', 'shec_ai_questions');
 add_action('wp_ajax_nopriv_shec_ai_questions', 'shec_ai_questions');
 
@@ -415,69 +610,95 @@ add_action('wp_ajax_nopriv_shec_ai_questions', 'shec_ai_questions');
  * FINALIZE (store answers + final)
  * --------------------------------- */
 if (!function_exists('shec_finalize')) {
-  function shec_finalize(){
-    shec_check_nonce_or_bypass();
+function shec_finalize(){
+  shec_check_nonce_or_bypass();
 
-    $uid = intval($_POST['user_id'] ?? 0);
-    if ($uid<=0) wp_send_json_error(['message'=>'کاربر معتبر نیست']);
+  $uid = intval($_POST['user_id'] ?? 0);
+  if ($uid<=0) wp_send_json_error(['message'=>'کاربر معتبر نیست']);
 
-    $answers = (isset($_POST['answers']) && is_array($_POST['answers'])) ? array_values($_POST['answers']) : [];
+  // 1) پاسخ‌های کاربر
+  $answers = (isset($_POST['answers']) && is_array($_POST['answers'])) ? array_values($_POST['answers']) : [];
 
-    $data = shec_get_data($uid);
-    if (!$data) wp_send_json_error(['message'=>'داده‌ای برای این کاربر پیدا نشد']);
+  // 2) داده فعلی
+  $data = shec_get_data($uid);
+  if (!$data) wp_send_json_error(['message'=>'داده‌ای برای این کاربر پیدا نشد']);
 
-    $questions = $data['ai']['followups']['questions'] ?? [];
-    $qa = [];
-    for ($i=0; $i<count($questions); $i++) {
-      $qa[] = ['q'=>(string)$questions[$i], 'a'=>(string)($answers[$i] ?? '')];
-    }
-    if (!isset($data['ai'])) $data['ai'] = [];
-    if (!isset($data['ai']['followups'])) $data['ai']['followups'] = [];
-    $data['ai']['followups']['qa'] = $qa;
-    $data['ai']['followups']['answers'] = $answers;
-
-    $pack = [
-      'gender'       => $data['gender'] ?? null,
-      'age'          => $data['age'] ?? null,
-      'loss_pattern' => $data['loss_pattern'] ?? null,
-      'medical'      => $data['medical'] ?? null,
-      'uploads'      => array_values($data['uploads'] ?? []),
-      'followups'    => $qa,
-      'contact'      => $data['contact'] ?? null,
-      'mobile'       => $data['mobile'] ?? null,
-    ];
-
-    $prompt_user = shec_render_template(shec_get_prompt_final(), ['PACK_JSON' => $pack]);
-    $resp = shec_openai_chat([['role'=>'user','content'=>$prompt_user]], ['temperature'=>0.2]);
-
-    $final = [
-      'method'=>'FIT',
-      'graft_count'=>2500,
-      'analysis'=>'بر اساس اطلاعات موجود، روش FIT می‌تواند مناسب باشد. برای ارزیابی دقیق‌تر، معاینه حضوری توصیه می‌شود.'
-    ];
-    if ($resp['ok']) {
-      $parsed = shec_json_decode_safe($resp['content']);
-      if (isset($parsed['method']) && isset($parsed['graft_count']) && isset($parsed['analysis'])) {
-        $final = $parsed;
-      }
-    } else if (($resp['http_code'] ?? 0) == 429) {
-      shec_set_rate_limit_block(180);
-    }
-
-    // ذخیره‌ی نتیجه
-    $data = shec_get_data($uid);
-    if (!isset($data['ai'])) $data['ai'] = [];
-    $data['ai']['final'] = $final;
-    shec_update_data($uid, $data);
-
-    wp_send_json_success([
-      'ai_result' => wp_json_encode($final, JSON_UNESCAPED_UNICODE),
-      'user'      => $data
-    ]);
+  // 3) ساخت QA از سوال‌های ذخیره‌شده
+  $questions = $data['ai']['followups']['questions'] ?? [];
+  $qa = [];
+  for ($i=0; $i<count($questions); $i++) {
+    $qa[] = ['q'=>(string)$questions[$i], 'a'=>(string)($answers[$i] ?? '')];
   }
+
+  // 4) ذخیره فوری QA (فیکس اصلی)
+  if (!isset($data['ai'])) $data['ai'] = [];
+  if (!isset($data['ai']['followups'])) $data['ai']['followups'] = [];
+  $data['ai']['followups']['qa']       = $qa;
+  $data['ai']['followups']['answers']  = $answers;
+  $data['ai']['followups']['generated_at'] = time();
+  shec_update_data($uid, $data); // ← مهم: همین‌جا ذخیره شود
+
+  // 5) پکیج ورودی برای AI (با QA)
+  $pack = [
+    'gender'       => $data['gender'] ?? null,
+    'age'          => $data['age'] ?? null,
+    'loss_pattern' => $data['loss_pattern'] ?? null,
+    'medical'      => $data['medical'] ?? null,
+    'uploads'      => array_values($data['uploads'] ?? []),
+    'followups'    => $qa,                               // ← QA همین رکورد
+    'contact'      => $data['contact'] ?? null,
+    'mobile'       => $data['mobile'] ?? null,
+  ];
+
+  // 6) تماس با AI
+  $prompt_user = shec_render_template(shec_get_prompt_final(), ['PACK_JSON' => $pack]);
+  $resp = shec_openai_chat([['role'=>'user','content'=>$prompt_user]], ['temperature'=>0.2]);
+
+  // 7) خروجی امن + سازگار با اسکیما جدید
+  $final = [
+    'method'           => 'FIT',
+    'graft_count'      => 2500,
+    'analysis'         => 'بر اساس اطلاعات موجود، روش FIT می‌تواند مناسب باشد. برای ارزیابی دقیق‌تر، معاینه حضوری توصیه می‌شود.',
+    // فیلدهای جدید (اختیاری)
+    'concern_box'      => '',
+    'pattern_explain'  => [],
+    'followups'        => [],   // هر آیتم: {q,a,coach/tip}
+    'followup_summary' => '',
+  ];
+
+  if (!empty($resp['ok'])) {
+    $parsed = shec_json_decode_safe($resp['content']);
+    if (is_array($parsed)) {
+      foreach (['method','graft_count','analysis','concern_box','pattern_explain','followups','followup_summary'] as $k) {
+        if (isset($parsed[$k])) $final[$k] = $parsed[$k];
+      }
+      // فقط FIT نمایش/ذخیره شود
+      $final['method'] = 'FIT';
+    }
+  } else if (($resp['http_code'] ?? 0) == 429) {
+    shec_set_rate_limit_block(180);
+  }
+
+  // 8) ثبت زمان تولید نتیجه و ذخیره
+  $final['generated_at'] = time();
+
+  // بازخوانی، سپس ادغام (برای احتیاط)
+  $data = shec_get_data($uid);
+  if (!isset($data['ai'])) $data['ai'] = [];
+  $data['ai']['final'] = $final;
+
+  shec_update_data($uid, $data);
+
+  wp_send_json_success([
+    'ai_result' => wp_json_encode($final, JSON_UNESCAPED_UNICODE),
+    'user'      => $data
+  ]);
+}
+
 }
 add_action('wp_ajax_shec_finalize','shec_finalize');
 add_action('wp_ajax_nopriv_shec_finalize','shec_finalize');
+
 
 /* ---------------------------------
  * PING

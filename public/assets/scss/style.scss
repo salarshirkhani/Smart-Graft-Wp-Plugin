@@ -162,6 +162,7 @@ select{
         .g-box{
             margin: 31px auto;
             margin-bottom: 65px;
+            justify-content: space-between;
             padding: 20px 50px 50px 50px !important;
             border-bottom: 1px solid #CDCFCE;
         }
@@ -197,7 +198,14 @@ select{
                 img {
                 width: 60px;
                 height: 60px;
-                transition: all 0.3s ease;
+                filter: grayscale(100%);
+                transition: filter 0.2s ease;
+                &.selected {
+                    filter: none;  
+                  }
+                }
+                &.selected {
+                    filter: none; 
                 }
 
                 span {
@@ -215,6 +223,10 @@ select{
                 span {
                 color: $primary-color;
                 font-weight: bold;
+                }
+
+                img{
+                filter: none;
                 }
 
             }
@@ -246,7 +258,14 @@ select{
                 img {
                 width: 60px;
                 height: 60px;
-                transition: all 0.3s ease;
+                filter: grayscale(100%);
+                transition: filter 0.2s ease;
+                &.selected {
+                    filter: none;  
+                  }
+                }
+                &.selected {
+                    filter: none; 
                 }
 
                 span {
@@ -400,21 +419,18 @@ select{
             }
 
             .thumbnail {
-                width: 100%;
-                height: auto;
+                width: 200px;
+                height: 200px;
                 margin-top: 10px;
                 border-radius: 6px;
             }
 
             // افکت hover
-            &:hover {
-                background: lighten($primary-color, 45%);
-                border-color: darken($primary-color, 10%);
-            }
+
         }   
         .upload-success {
                 border: 1px solid #28a745; 
-                background: #c2e5cc;
+                background: #ffffff;
         }           
     }
 
@@ -774,6 +790,7 @@ select{
   font-size: 16px;
   line-height: 1.8;
   color: #444;
+  text-align: center !important;
   font-weight: 600;
   opacity: 1;
 }
@@ -1060,6 +1077,12 @@ select{
         font-size: 14px;
         padding: 12px;
     }
+    .g-box{
+
+            justify-content: center !important;
+
+    }
+
 
 }
 
@@ -1168,3 +1191,64 @@ option {
   50%  { transform: scale(33.3); opacity: 1; }
   100% { transform: scale(1);   opacity: 1; }
 }
+/* باکس هشدار؛ دسکتاپ = 20% آیکن + 80% متن */
+.he-warn-card{
+  display:flex;
+  align-items:stretch;
+  gap:16px;
+  padding:16px 18px;
+  border:1px solid #ffb37a;
+  background:#fff7f0;
+  border-radius:14px;
+  box-shadow:0 2px 10px rgba(255,102,0,.06);
+  position:relative;
+  direction:rtl;
+}
+
+/* متن: پررنگ و قرمز */
+.he-warn-card p{
+  margin:0;
+  color:#b3261e;                 /* قرمز متن */
+  font-weight:700;               /* Bold */
+  line-height:1.9;
+  flex:1 1 auto;                 /* 80% باقیمانده */
+  text-align:justify;
+}
+
+/* حالت موبایل: آیکن بالا، متن زیر آن */
+@media (max-width: 576px){
+  .he-warn-card{
+    flex-direction:column;
+    gap:10px;
+    padding:14px 16px;
+  }
+  .he-warn-card p{
+    font-size:0.95rem;
+  }
+}
+  .ai-qa{list-style:none;margin:0;padding:0}
+  .ai-qa-item{
+    background:#fff;border:1px solid #eef1f4;border-radius:14px;
+    padding:12px 14px;margin:10px 0;box-shadow:0 4px 14px rgba(0,0,0,.04)
+  }
+  .ai-qa-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+  .ai-qa-head .num{
+    flex:0 0 auto;width:28px;height:28px;border-radius:999px;
+    background:#f3f6f9;border:1px solid #e7ecf1;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px
+  }
+  .ai-qa-q{font-weight:700;line-height:1.9}
+  .ai-qa-a{display:flex;align-items:center;gap:8px;margin:6px 0 2px 0}
+  .ai-qa-a .label{opacity:.7}
+  .ai-qa-a .ans-pill{
+    padding:2px 12px;border-radius:999px;border:1px solid #e9edf2;background:#f8fafc;
+    font-weight:700
+  }
+  .ai-qa-a .ans-yes{color:#2b8a3e;background:#eaf7ef;border-color:#d6f0dd}
+  .ai-qa-a .ans-no{color:#c92a2a;background:#fff5f5;border-color:#ffd9d9}
+  .ai-qa-tip{
+    margin-top:8px;padding:10px 12px;border-radius:12px;
+    background:#f6f9ff;border:1px solid #e6efff
+  }
+  .ai-qa-tip .bot{margin-inline-start:2px;margin-inline-end:6px}

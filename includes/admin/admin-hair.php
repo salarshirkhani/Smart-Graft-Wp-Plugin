@@ -45,7 +45,12 @@ add_action('admin_enqueue_scripts', function ($hook) {
     $inline_css = "
 @import url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/font-face.css');
 
-.shec-admin { direction: rtl; font-family: Shabnam, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; }
+body{
+    font-family: Shabnam, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    direction: rtl;
+} 
+
+.shec-admin { direction: rtl; font-family: Shabnam; }
 .shec-title { margin-bottom: 10px; }
 
 .shec-admin-tabs { display:flex; gap:8px; margin:6px 0 16px; }
@@ -59,7 +64,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
 }
 
 .shec-card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow:0 8px 28px rgba(17,24,39,.06); }
-.shec-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; margin:8px 0 18px; }
+.shec-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(350px,1fr)); gap:10px; margin:8px 0 18px; }
 .shec-subtitle { margin:18px 0 8px; }
 
 .shec-table th, .shec-table td { vertical-align:middle; }
@@ -116,6 +121,57 @@ jQuery(function($){
 /** =========================
  *  Admin tabs + wrappers
  * ========================= */
+
+
+function shec_display_dashboard_stats() {
+    global $wpdb;
+
+    // تعداد کل فرم‌های ارسال شده
+    $total_forms = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users");
+
+    // تعداد فرم‌های کامل
+    $completed_forms = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"contact\"%'");
+
+    // شماره‌های جدید (کاربرانی که در ابتدا ثبت‌نام کردند)
+    $new_numbers = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"mobile\"%'");
+
+    // نرخ موفقیت (تعداد فرم‌های کامل / تعداد کل فرم‌ها)
+    $success_rate = ($total_forms > 0) ? ($completed_forms / $total_forms) * 100 : 0;
+
+    // نمایش باکس‌ها
+    echo '<div class="shec-grid shec-dashboard-stats">';
+
+    // تعداد کل فرم‌های ارسال شده
+    echo '<div class="shec-card">';
+    echo '<h3>تعداد کل فرم‌های ارسال شده</h3>';
+    echo '<p>' . esc_html($total_forms) . '</p>';
+    echo '</div>';
+
+    // تعداد فرم‌های کامل شده
+    echo '<div class="shec-card">';
+    echo '<h3>فرم‌های کامل شده</h3>';
+    echo '<p>' . esc_html($completed_forms) . '</p>';
+    echo '</div>';
+
+    // شماره‌های جدید
+    echo '<div class="shec-card">';
+    echo '<h3>شماره‌های جدید</h3>';
+    echo '<p>' . esc_html($new_numbers) . '</p>';
+    echo '</div>';
+
+    // نرخ موفقیت
+    echo '<div class="shec-card">';
+    echo '<h3>نرخ موفقیت</h3>';
+    echo '<p>' . esc_html(number_format($success_rate, 2)) . '%</p>';
+    echo '</div>';
+
+    echo '</div>'; // پایان shec-grid
+}
+
+// فراخوانی این تابع در صفحه مناسب
+add_action('shec_display_data', 'shec_display_dashboard_stats', 10);
+
+
 function shec_admin_tabs($active = 'data') {
     $base = admin_url('admin.php');
     $items = [
@@ -188,9 +244,50 @@ function shec_display_data() {
     global $wpdb;
 
     // نزولی بر اساس آیدی
-    $rows = $wpdb->get_results("SELECT id, data FROM {$wpdb->prefix}shec_users ORDER BY id DESC");
+    $rows = $wpdb->get_results("SELECT id, data FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"contact\"%' ORDER BY id DESC");
 
     shec_admin_wrap_open('data', 'داده‌های فرم هوشمند فخرایی');
+
+        // تعداد کل فرم‌های ارسال شده
+    $total_forms = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users");
+
+    // تعداد فرم‌های کامل
+    $completed_forms = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"contact\"%'");
+
+    // شماره‌های جدید (کاربرانی که در ابتدا ثبت‌نام کردند)
+    $new_numbers = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"mobile\"%'");
+
+    // نرخ موفقیت (تعداد فرم‌های کامل / تعداد کل فرم‌ها)
+    $success_rate = ($total_forms > 0) ? ($completed_forms / $total_forms) * 100 : 0;
+
+    // نمایش باکس‌ها
+    echo '<div class="shec-grid shec-dashboard-stats">';
+
+    // تعداد کل فرم‌های ارسال شده
+    echo '<div class="shec-card">';
+    echo '<h3>تعداد کل فرم‌های ارسال شده</h3>';
+    echo '<p>' . esc_html($total_forms) . '</p>';
+    echo '</div>';
+
+    // تعداد فرم‌های کامل شده
+    echo '<div class="shec-card">';
+    echo '<h3>فرم‌های کامل شده</h3>';
+    echo '<p>' . esc_html($completed_forms) . '</p>';
+    echo '</div>';
+
+    // شماره‌های جدید
+    echo '<div class="shec-card">';
+    echo '<h3>شماره‌های جدید</h3>';
+    echo '<p>' . esc_html($new_numbers) . '</p>';
+    echo '</div>';
+
+    // نرخ موفقیت
+    echo '<div class="shec-card">';
+    echo '<h3>نرخ موفقیت</h3>';
+    echo '<p>' . esc_html(number_format($success_rate, 2)) . '%</p>';
+    echo '</div>';
+
+    echo '</div>'; // پایان shec-grid
 
     // جدول با ستون‌های دقیقاً مشخص‌شده
     echo '<table id="shec-data-table" class="display shec-table" style="width:100%; text-align:right; direction:rtl; float:right;">';
@@ -262,84 +359,227 @@ function shec_display_data() {
  *  Detail page
  * ========================= */
 function shec_display_user_details() {
-    global $wpdb;
-    $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
+  global $wpdb;
 
-    shec_admin_wrap_open('detail', 'جزئیات داده‌ها');
+  $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
+  shec_admin_wrap_open('detail', 'جزئیات داده‌ها');
 
-    if (!$user_id) {
-        echo '<p>اطلاعات کاربر پیدا نشد.</p>';
-        shec_admin_wrap_close();
-        return;
+  if (!$user_id) { echo '<p>اطلاعات کاربر پیدا نشد.</p>'; shec_admin_wrap_close(); return; }
+
+  // ردیف دیتابیس (id=کلید جدول)
+  $table = $wpdb->prefix . 'shec_users';
+  $row   = $wpdb->get_row( $wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $user_id) );
+  if (!$row) { echo '<p>اطلاعات کاربر پیدا نشد.</p>'; shec_admin_wrap_close(); return; }
+
+  $d    = json_decode($row->data ?? '[]', true);
+  $step = function_exists('shec_detect_progress') ? shec_detect_progress($d) : '-';
+
+  // Helpers
+  $esc  = 'esc_html';
+  $ynFa = function($v){
+    $t = is_bool($v) ? ($v ? 'yes' : 'no') : strtolower(trim((string)$v));
+    if (in_array($t, ['yes','true','1'], true)) return 'بله';
+    if (in_array($t, ['no','false','0'], true))  return 'خیر';
+    $v = trim((string)$v);
+    return ($v === '') ? '—' : $v;
+  };
+  $stageFromPattern = function($p){
+    if (!$p) return null;
+    if (preg_match('~(\d+)~', (string)$p, $m)) {
+      $s = (int)$m[1]; if ($s<1) $s=1; if ($s>7) $s=7; return $s;
     }
+    return null;
+  };
+  $graftByTable = function($gender, $stage){
+    if (!$stage) return null;
+    $gender = strtolower((string)$gender);
+    $male   = [1=>8000, 2=>10000, 3=>12000, 4=>14000, 5=>16000, 6=>18000, 7=>20000];
+    $female = [1=>4000, 2=>8000,  3=>10000, 4=>12000, 5=>14000, 6=>16000];
+    $tbl = ($gender==='female') ? $female : $male;
+    return $tbl[$stage] ?? null;
+  };
+  $fmt_dt = function($ts){
+    if (!$ts) return '—';
+    return date_i18n( get_option('date_format').' H:i', is_numeric($ts) ? (int)$ts : strtotime($ts) );
+  };
 
-    $row = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}shec_users WHERE id = $user_id");
-    if (!$row) {
-        echo '<p>اطلاعات کاربر پیدا نشد.</p>';
-        shec_admin_wrap_close();
-        return;
+  // تاریخ/ساعت: اولویت با ستون‌های جدول، بعد تایم‌استمپ‌های AI
+  $created_at = $row->created_at ?? ($row->inserted_at ?? null);
+  if (!$created_at) {
+    $created_at = $d['ai']['final']['generated_at'] ?? ($d['ai']['followups']['generated_at'] ?? null);
+  }
+
+  // اطلاعات پایه
+  $gender   = $d['gender'] ?? ($d['contact']['gender'] ?? '');
+  $age      = $d['age'] ?? ($d['contact']['age'] ?? '');
+  $mobile   = $d['mobile'] ?? ($d['contact']['mobile'] ?? '');
+  $fname    = $d['contact']['first_name'] ?? '';
+  $lname    = $d['contact']['last_name']  ?? '';
+  $fullName = trim($fname.' '.($lname?:''));
+  $pattern  = $d['loss_pattern'] ?? ($d['pattern'] ?? '');
+  $confidence = $d['confidence'] ?? '';
+  $social   = $d['contact']['social'] ?? '';
+  $concern  = $d['medical']['concern'] ?? '';
+
+  $stage    = $stageFromPattern($pattern);
+  $graftTbl = $graftByTable($gender, $stage);
+
+  // آپلودها (با عنوان پوزیشن)
+  $uploads = $d['uploads'] ?? [];
+
+  // سؤالات/پاسخ‌ها ذخیره‌شده
+  $fu      = $d['ai']['followups'] ?? [];
+  $qaList  = [];
+  if (!empty($fu['qa']) && is_array($fu['qa'])) {
+    $qaList = $fu['qa'];
+  } elseif (!empty($fu['questions']) && is_array($fu['questions'])) {
+    $ans = is_array($fu['answers'] ?? null) ? $fu['answers'] : [];
+    foreach ($fu['questions'] as $i=>$q) { $qaList[] = ['q'=>$q, 'a'=>$ans[$i] ?? '']; }
+  }
+
+  // خروجی AI (سازگار با قدیمی/جدید)
+  $final     = $d['ai']['final'] ?? [];
+  $method    = $final['method'] ?? '';
+  $graft_ai  = $final['graft_count'] ?? '';
+  $analysis  = $final['analysis'] ?? '';
+
+  $concern_box = $final['concern_box'] ?? '';
+  $pat_ex      = is_array($final['pattern_explain'] ?? null) ? $final['pattern_explain'] : [];
+  $fu_ai       = is_array($final['followups'] ?? null) ? $final['followups'] : []; // [{q,a,coach/tip}]
+  $fu_sum      = $final['followup_summary'] ?? '';
+
+  // نقشهٔ Q/A ← کامنت AI (برای نمایش کنار هر سؤال)
+  $aiCoachMap = [];
+  foreach ($fu_ai as $item) {
+    $q = trim((string)($item['q'] ?? ''));
+    if ($q === '') continue;
+    $aiCoachMap[$q] = trim((string)($item['coach'] ?? $item['tip'] ?? ''));
+  }
+
+  // استایل مختصر مخصوص همین صفحه
+  echo '<style>
+    .shec-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}
+    .shec-card{background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:14px}
+    .shec-badge{display:flex;gap:6px;align-items:center;font-size:13px;color:#666}
+    .shec-badge b{color:#111}
+    .shec-title{margin:18px 0 8px;font-weight:700}
+    .shec-chips{display:flex;flex-wrap:wrap;gap:8px}
+    .shec-chip{background:#f6f7f9;border:1px solid #edf0f4;border-radius:999px;padding:6px 10px;font-size:12px}
+    .shec-uploads{display:flex;flex-wrap:wrap;gap:10px}
+    .shec-uploads figure{width:160px;margin:0}
+    .shec-uploads img{width:160px;height:160px;object-fit:cover;border-radius:10px;border:1px solid #eee}
+    .shec-uploads figcaption{font-size:12px;text-align:center;color:#666;margin-top:6px}
+    .shec-qa{list-style:none;padding:0;margin:0}
+    .shec-qa li{border:1px solid #edf0f4;background:#fafbfc;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+    .shec-qa .q{font-weight:700;margin-bottom:6px}
+    .shec-qa .a{margin-bottom:8px}
+    .shec-qa .coach{display:flex;gap:6px;align-items:flex-start}
+    .shec-qa .coach .bot{font-size:16px;line-height:1}
+    .shec-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .shec-stat{background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:12px}
+    .shec-stat .label{font-size:12px;color:#666}
+    .shec-stat .val{font-weight:700;font-size:16px}
+    .shec-note{background:#f7f9ff;border:1px solid #e6eeff;border-radius:10px;padding:12px}
+  </style>';
+
+  // هدر
+  echo '<div class="shec-grid shec-card" style="grid-template-columns:repeat(5,minmax(0,1fr))">';
+  echo '  <div class="shec-badge"><b>شناسه کاربر:</b> '.intval($row->id).'</div>';
+  echo '  <div class="shec-badge"><b>مرحله:</b> '.$esc($step).'/6</div>';
+  echo '  <div class="shec-badge"><b>تاریخ ثبت:</b> '.$esc( $fmt_dt($created_at) ).'</div>';
+  echo '  <div class="shec-badge"><b>وضعیت AI (سوالات):</b> '.($esc(isset($fu['generated_at']) ? $fmt_dt($fu['generated_at']) : '—')).'</div>';
+  echo '  <div class="shec-badge"><b>وضعیت AI (نهایی):</b> '.($esc(isset($final['generated_at']) ? $fmt_dt($final['generated_at']) : '—')).'</div>';
+  echo '</div>';
+
+  // اطلاعات فردی
+  echo '<h3 class="shec-title">اطلاعات کاربر</h3>';
+  echo '<div class="shec-grid">';
+  echo '  <div class="shec-card"><div class="shec-badge"><b>نام و نام خانوادگی:</b> '.$esc($fullName ?: '—').'</div></div>';
+  echo '  <div class="shec-card"><div class="shec-badge"><b>جنسیت:</b> '.$esc($gender ?: '—').'</div></div>';
+  echo '  <div class="shec-card"><div class="shec-badge"><b>سن:</b> '.$esc($age ?: '—').'</div></div>';
+  echo '  <div class="shec-card"><div class="shec-badge"><b>شماره تلفن:</b> '.$esc($mobile ?: '—').'</div></div>';
+  echo '  <div class="shec-card"><div class="shec-badge"><b>الگوی ریزش مو:</b> '.$esc($pattern ?: '—').'</div></div>';
+  echo '  <div class="shec-card"><div class="shec-badge"><b>اعتماد به نفس/توضیح کاربر:</b> '.$esc($confidence ?: '—').'</div></div>';
+  echo '  <div class="shec-card"><div class="shec-badge"><b>سوشال:</b> '.$esc($social ?: '—').'</div></div>';
+  echo '  <div class="shec-card"><div class="shec-badge"><b>مهم‌ترین دغدغه:</b> '.$esc($concern ?: '—').'</div></div>';
+  echo '</div>';
+
+  // گالری آپلود
+  echo '<h3 class="shec-title">تصاویر آپلود شده</h3>';
+  if ($uploads && is_array($uploads)) {
+    echo '<div class="shec-uploads">';
+    foreach ($uploads as $pos => $url) {
+      echo '<figure><img src="'.esc_url($url).'" alt=""><figcaption>'. $esc($pos) .'</figcaption></figure>';
     }
-
-    $d    = json_decode($row->data, true);
-    $step = shec_detect_progress($d);
-
-    
-
-    echo '<div class="shec-grid">';
-    echo '  <div><strong>شناسه کاربر:</strong> '.intval($row->id).'</div>';
-    echo '  <div><strong>مرحله:</strong> '.esc_html($step).'/6</div>';
-    echo '  <div><strong>جنسیت:</strong> '.esc_html($d['gender'] ?? 'N/A').'</div>';
-    echo '  <div><strong>سن:</strong> '.esc_html($d['age'] ?? 'N/A').'</div>';
-    echo '  <div><strong>اعتماد به نفس:</strong> '.esc_html($d['confidence'] ?? 'N/A').'</div>';
-    echo '  <div><strong>الگوی ریزش مو:</strong> '.esc_html($d['loss_pattern'] ?? 'N/A').'</div>';
-    echo '  <div><strong>شماره تلفن:</strong> '.esc_html($d['mobile'] ?? ($d['contact']['mobile'] ?? 'N/A')).'</div>';
-    echo '  <div><strong>نام:</strong> '.esc_html($d['contact']['first_name'] ?? 'N/A').'</div>';
-    echo '  <div><strong>نام خانوادگی:</strong> '.esc_html($d['contact']['last_name'] ?? 'N/A').'</div>';
-    echo '  <div><strong>سوشال:</strong> '.esc_html($d['contact']['social'] ?? 'N/A').'</div>';
     echo '</div>';
+  } else {
+    echo '<div class="shec-card">هیچ تصویری برای این کاربر آپلود نشده است.</div>';
+  }
 
-     // نمایش تصاویر آپلود شده
-    $uploads = $d['uploads'] ?? [];
-    if (!empty($uploads)) {
-        echo "<h3>تصاویر آپلود شده:</h3>";
-        foreach ($uploads as $image_url) {
-            echo "<img src='{$image_url}' alt='Uploaded Image' style='max-width: 200px; height: 200px; margin-bottom: 10px;' />";
-        }
-    } else {
-        echo "<p>هیچ تصویری برای این کاربر آپلود نشده است.</p>";
+  // توضیح الگو + پاسخ به دغدغه
+  if ($concern_box || $pat_ex) {
+    echo '<h3 class="shec-title">توضیح هوش مصنوعی (الگو و دغدغه)</h3>';
+    echo '<div class="shec-grid">';
+    if ($pat_ex) {
+      $p_label = $pat_ex['label']       ?? '—';
+      $p_what  = $pat_ex['what_it_is']  ?? '';
+      $p_why   = $pat_ex['why_happens'] ?? '';
+      $p_note  = $pat_ex['note']        ?? '';
+      echo '<div class="shec-card shec-note">';
+      echo '  <div><b>الگوی شما:</b> '.$esc($p_label).'</div>';
+      if ($p_what) echo '<div style="margin-top:6px">'.$esc($p_what).'</div>';
+      if ($p_why)  echo '<div style="margin-top:6px">'.$esc($p_why).'</div>';
+      if ($p_note) echo '<div style="margin-top:6px">'.$esc($p_note).'</div>';
+      echo '</div>';
     }
-
-    // سؤالات/پاسخ‌ها
-    $qs  = $d['ai']['followups']['questions'] ?? [];
-    $ans = $d['ai']['followups']['answers'] ?? [];
-
-    echo '<h2 class="shec-subtitle">سوالات و پاسخ‌ها</h2>';
-    if ($qs) {
-        echo '<ol class="shec-qa">';
-        foreach ($qs as $i => $q) {
-            $a = $ans[$i] ?? '';
-            echo '<li><strong>'.esc_html($q).'</strong><br><strong>پاسخ:</strong> '.esc_html($a ?: '—').'</li>';
-        }
-        echo '</ol>';
-    } else {
-        echo '<p>—</p>';
+    if ($concern_box) {
+      echo '<div class="shec-card shec-note"><div>🤖 '.$esc($concern_box).'</div></div>';
     }
+    echo '</div>';
+  }
 
-    // نتیجه نهایی
-    $final = $d['ai']['final'] ?? null;
-    echo '<h2 class="shec-subtitle">نتیجه‌گیری هوش مصنوعی</h2>';
-    if ($final) {
-        echo '<div class="shec-result">';
-        echo '  <div><strong>روش:</strong> '.esc_html($final['method'] ?? '—').'</div>';
-        echo '  <div><strong>تخمین گرافت:</strong> '.esc_html($final['graft_count'] ?? '—').'</div>';
-        echo '  <div><strong>تحلیل:</strong><br><div class="shec-analysis">'.esc_html($final['analysis'] ?? '—').'</div></div>';
-        echo '</div>';
-    } else {
-        echo '<p>—</p>';
+  // آمار کوتاه (روش/گرافت)
+  echo '<h3 class="shec-title">جمع‌بندی درمانی</h3>';
+  echo '<div class="shec-stats">';
+  echo '  <div class="shec-stat"><div class="label">روش پیشنهادی</div><div class="val">'. $esc($method ?: '—') .'</div></div>';
+  echo '  <div class="shec-stat"><div class="label">گرافت پیشنهادی (AI)</div><div class="val">'. $esc($graft_ai ?: '—') .'</div></div>';
+  echo '  <div class="shec-stat"><div class="label">گرافت تقریبی از جدول کلینیک</div><div class="val">'. ($graftTbl ? number_format_i18n($graftTbl) : '—') .'</div></div>';
+  echo '</div>';
+
+  if ($analysis) {
+    echo '<div class="shec-card" style="margin-top:10px"><div class="shec-badge" style="margin-bottom:6px"><b>تحلیل AI:</b></div><div>'. $esc($analysis) .'</div></div>';
+  }
+
+  // سؤالات/پاسخ‌ها + یادداشت AI برای هر سؤال
+  echo '<h3 class="shec-title">سؤالات پیگیری و پاسخ‌های کاربر</h3>';
+  if ($qaList) {
+    echo '<ol class="shec-qa">';
+    foreach ($qaList as $i=>$qa) {
+      $q = trim((string)($qa['q'] ?? ''));
+      $a = $qa['a'] ?? '';
+      $coach = $aiCoachMap[$q] ?? '';
+      echo '<li>';
+      echo '  <div class="q">'.($i+1).'. '.$esc($q ?: '—').'</div>';
+      echo '  <div class="a"><b>پاسخ:</b> '.$esc($ynFa($a)).'</div>';
+      if ($coach) {
+        echo '  <div class="coach"><span class="bot">🤖</span><div>'. $esc($coach) .'</div></div>';
+      }
+      echo '</li>';
     }
+    echo '</ol>';
+  } else {
+    echo '<div class="shec-card">—</div>';
+  }
 
-    shec_admin_wrap_close();
+  // خلاصهٔ جمع‌بندی از پاسخ‌ها (اختیاری)
+  if ($fu_sum) {
+    echo '<h3 class="shec-title">جمع‌بندی پاسخ‌ها و توصیه‌های اختصاصی</h3>';
+    echo '<div class="shec-card shec-note">'. $esc($fu_sum) .'</div>';
+  }
+
+  shec_admin_wrap_close();
 }
+
 
 /** =========================
  *  Settings page

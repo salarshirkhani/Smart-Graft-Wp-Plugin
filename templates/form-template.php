@@ -1,4 +1,6 @@
 <?php $img_path = plugins_url('../public/assets/img/', __FILE__); ?>
+<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js"type="module"></script>
+
 <div id="progress-wrapper" class="position-sticky top-0 start-0 w-100 bg-white z-3" >
     <div class="progress" style="height: 8px; border-radius:0px;">
          <div id="progress-bar" class="progress-bar bg-or" role="progressbar" style="width: 0%; transition: width 0.4s ease;"></div>
@@ -28,12 +30,12 @@
             <!-- Gender Selection -->
             <div class="mb-4">
                 <label class="d-block mb-2 fw-bold ">جنسیت خود را انتخاب کنید <span class="text-danger">*</span></label>
-                <div class="g-box d-flex justify-content-center gap-3">
+                <div class="g-box d-flex gap-3">
                     <label class="gender-option">
                     <input type="radio" name="gender" value="female" class="hidden-radio">
                     <div class="option-box">
                         <span>زن</span>
-                        <img src="<?php echo $img_path . 'women.png'; ?>" alt="زن">
+                        <img src="<?php echo $img_path . 'female.png'; ?>" alt="زن">
                     </div>
                     </label>
 
@@ -41,7 +43,7 @@
                     <input type="radio" name="gender" value="male" class="hidden-radio">
                     <div class="option-box">
                         <span>مرد</span>
-                        <img src="<?php echo $img_path . 'men.png'; ?>" alt="مرد">
+                        <img src="<?php echo $img_path . 'male.png'; ?>" alt="مرد">
                     </div>
                     </label>
                 </div>
@@ -87,7 +89,7 @@
 
             <div class="mb-4">
                 <label class="d-block mb-2 fw-bold">برای کاشت مو چقدر قطعیت دارید؟</label>
-                <select name="confidence" class="form-select mx-auto" style="padding: 10px;border: 1px solid #ff6600;">
+                <select name="confidence" class="form-select mx-auto" required style="padding: 10px;border: 1px solid #ff6600;">
                     <option value="">انتخاب کنید</option>    
                     <option value="ریزش مو دارم و نمیدونم الان باید بکارم یا نه!">ریزش مو دارم و نمیدونم الان باید بکارم یا نه!</option>
                     <option value="می‌خوام مو بکارم اما دارم در این مورد تحقیق می‌کنم.">می‌خوام مو بکارم اما دارم در این مورد تحقیق می‌کنم.</option>
@@ -166,14 +168,13 @@
             <form id="form-step-4">
                 <div class="mb-4">
                     <label class="d-block mb-2 fw-bold">نگرانی و دغدغه اصلی شما برای انجام کاشت مو کدام است؟</label>
-                    <select name="concern" class="form-select mx-auto" style="padding: 10px;border: 1px solid #ff6600;">
+                    <select name="concern" class="form-select mx-auto" required style="padding: 10px;border: 1px solid #ff6600;">
                         <option value="">انتخاب کنید</option>    
                         <option value="مطمئن نیستم نتیجه کاشت خوب بشه یا نه.">مطمئن نیستم نتیجه کاشت خوب بشه یا نه.</option>
                         <option value="نگرانم نتیجه نهایی خیلی طول بکشه.">نگرانم نتیجه نهایی خیلی طول بکشه.</option>
                         <option value="نگرانم دوران نقاهت سختی داشته باشه.">نگرانم دوران نقاهت سختی داشته باشه.</option>
                         <option value="نگرانم خیلی درد داشته باشه.">نگرانم خیلی درد داشته باشه.</option>
                         <option value="هزینه برام خیلی مهمه.">هزینه برام خیلی مهمه.</option>
-                        <option value="نگرانی دیگه ای دارم">نگرانی دیگه ای دارم</option>
                     </select>
                 </div>
                 <label class="d-block mb-2 ">آیا به بیماری خاصی مبتلا هستید؟</label>
@@ -199,7 +200,6 @@
                         <option value="ریزش سکه‌ای (آلوپسی آره‌آتا)">ریزش سکه‌ای (آلوپسی آره‌آتا)</option>
                         <option value="آلوپسی به همراه اسکار">آلوپسی به همراه اسکار</option>
                         <option value="جای زخم (اسکار)">جای زخم (اسکار)</option>
-                        <option value="هیچکدام">هیچکدام</option>
                     </select>
                     <label class="d-block mb-2 " style="margin:15px 0px;">سایر بیماری ها</label>
                     <select name="other_conditions" class="form-select mx-auto" style="padding: 10px;border: 1px solid #ff6600;">
@@ -210,7 +210,6 @@
                         <option value="اختلالات تیروئید">اختلالات تیروئید</option>
                         <option value="ضعف سیستم ایمنی">ضعف سیستم ایمنی</option>
                         <option value="بیماری‌های خودایمنی">بیماری‌های خودایمنی</option>
-                        <option value="هیچکدام">هیچکدام</option>
                     </select>
                 </div>
 
@@ -241,9 +240,13 @@
         <div id="step-5" class="step d-none">
             <div id="step5-loader" class="loader-overlay" style="display:none;">
             <div class="ai-loader">
-                <div class="ai-spinner-img">
-                    <img src="<?php echo $img_path . 'spinner.webp'; ?>" alt="loading" />
-                </div>
+                <dotlottie-wc
+                src="https://lottie.host/f6ee527c-625e-421f-b114-b95e703a33c5/UHdu4rKs9b.lottie"
+                style=""
+                speed="1"
+                autoplay
+                loop
+                ></dotlottie-wc>
                 <div id="ai-loader-text" class="ai-loader-text"></div>
             </div>
             </div>
@@ -272,7 +275,7 @@
                             </label>
                             <label class="toggle-option">
                                 <input type="radio" name="social" value="whatsapp" hidden>
-                                <span>واتس اپ</span>
+                                <span>واتساپ</span>
                             </label>
                         </div>
                     </div>
