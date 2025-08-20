@@ -1,34 +1,4 @@
 <?php 
-// 2) ساخت جدول دیتابیس و ایجاد برگه
-register_activation_hook( __FILE__, 'shec_activate_plugin' );
-function shec_activate_plugin() {
-    global $wpdb;
-    $table = $wpdb->prefix . 'shec_users';
-    $charset = $wpdb->get_charset_collate();
-
-    $sql = "CREATE TABLE {$table} (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        wp_user_id BIGINT UNSIGNED DEFAULT NULL,
-        data LONGTEXT NOT NULL,
-        created DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY  (id)
-    ) $charset;";
-
-    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-    dbDelta( $sql );
-
-    // ایجاد برگه فرم
-    $page = get_page_by_path( 'hair-graft-calculator' );
-    if ( ! $page ) {
-        wp_insert_post( [
-            'post_title'   => 'Hair Graft Calculator',
-            'post_name'    => 'hair-graft-calculator',
-            'post_content' => '[smart_hair_calculator]',
-            'post_status'  => 'publish',
-            'post_type'    => 'page',
-        ] );
-    }
-}
 
 // 3) لود فایل‌های استایل و اسکریپت با nonce برای امنیت
 add_action( 'wp_enqueue_scripts', 'shec_enqueue_assets' );
@@ -190,7 +160,7 @@ function hide_header_footer_on_shec_page() {
             h1, h2, h3, h4, h5, h6 {
                 display: none;  
             }
-            .site-header, .site-footer, .wp-admin-bar, .header, .footer {
+            .site-header, .site-footer, .wp-admin-bar, .header, .footer ,.entry-title {
                 display: none;
             }
             header , footer{

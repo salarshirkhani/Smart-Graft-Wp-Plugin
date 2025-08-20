@@ -946,7 +946,7 @@ API.step5(payloadContact).done(function(res){
           <ol class="ai-qa">
             ${qaItems.map((item, i)=>{
               const tip = getTipFor(item.q, i);          // از کدت داریش
-              const ans = faYesNo(item.a);               // از کدت داریش
+              const ans = faYesNo(item.a);               
               const ansClass = /بله/.test(ans) ? 'ans-yes' : (/خیر/.test(ans) ? 'ans-no' : '');
               return `
                 <li class="ai-qa-item">
