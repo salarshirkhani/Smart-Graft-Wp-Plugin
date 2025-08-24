@@ -163,3 +163,33 @@ function shec_finalize_telegram_bridge($public_url, $wp_user_id, $contact, $fina
     set_transient($key, 1, 600);
     shec_notify_telegram((int)$wp_user_id, $public_url, (array)$contact, (array)$final);
 }
+
+
+//WEBHOOK ADMIN UI
+function shec_admin_render_telegram_webhook_box() {
+    if ( ! current_user_can('manage_options') ) return;
+
+    $token  = trim((string) get_option('shec_telegram_api', ''));
+    $url    = home_url('/wp-json/shec/v1/telegram/webhook');
+    $secret = get_option('shec_tg_secret', '');
+
+    echo '<div class="shec-box" style="margin-top:16px;padding:12px;border:1px solid #ccd0d4;background:#fff;">';
+    echo '<h2 style="margin:0 0 10px;">وبهوک تلگرام</h2>';
+    echo '<p><strong>Webhook URL:</strong><br><code>'.esc_html($url).'</code></p>';
+
+    echo '<div class="shec-field"><label>Secret Token (اختیاری برای امنیت وبهوک)</label><br/>';
+    echo '<input type="text" name="shec_tg_secret" value="'.esc_attr($secret).'" style="width:360px" />';
+    echo '<p class="description">اگر تنظیم شود، تلگرام هدر <code>x-telegram-bot-api-secret-token</code> را با همین مقدار می‌فرستد.</p>';
+    echo '</div>';
+
+    echo '<p style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">';
+    echo '  <button class="button button-primary" name="shec_action" value="set_webhook" type="submit">ست وبهوک</button>';
+    echo '  <button class="button" name="shec_action" value="delete_webhook" type="submit">حذف وبهوک</button>';
+    echo '  <button class="button" name="shec_action" value="info_webhook" type="submit">وضعیت وبهوک</button>';
+    echo '</p>';
+
+    if (!$token) {
+        echo '<p style="color:#b91c1c">توکن ربات وارد نشده است.</p>';
+    }
+    echo '</div>';
+}

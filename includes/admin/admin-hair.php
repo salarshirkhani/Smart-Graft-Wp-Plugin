@@ -585,16 +585,50 @@ function shec_display_user_details() {
  *  Settings page
  * ========================= */
 function shec_display_settings() {
+    $tg_msg = ''; // پیام وضعیت وبهوک
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (isset($_POST['shec_api_key']))          update_option('shec_api_key', sanitize_text_field($_POST['shec_api_key']));
-        if (isset($_POST['shec_sms_api']))          update_option('shec_sms_api', sanitize_text_field($_POST['shec_sms_api']));
-        if (isset($_POST['shec_telegram_api']))     update_option('shec_telegram_api', sanitize_text_field($_POST['shec_telegram_api']));
+        // ذخیره تنظیمات
+        if (isset($_POST['shec_api_key']))          update_option('shec_api_key',          sanitize_text_field($_POST['shec_api_key']));
+        if (isset($_POST['shec_sms_api']))          update_option('shec_sms_api',          sanitize_text_field($_POST['shec_sms_api']));
+        if (isset($_POST['shec_telegram_api']))     update_option('shec_telegram_api',     sanitize_text_field($_POST['shec_telegram_api']));
+        if (isset($_POST['shec_admin_chat_id']))    update_option('shec_admin_chat_id',    sanitize_text_field($_POST['shec_admin_chat_id']));
+        if (isset($_POST['shec_tg_secret']))        update_option('shec_tg_secret',        sanitize_text_field($_POST['shec_tg_secret']));
         if (isset($_POST['shec_prompt_questions'])) update_option('shec_prompt_questions', shec_sanitize_prompt_text($_POST['shec_prompt_questions']));
-        if (isset($_POST['shec_prompt_final']))     update_option('shec_prompt_final', shec_sanitize_prompt_text($_POST['shec_prompt_final']));
-        if (isset($_POST['shec_admin_chat_id'])) update_option('shec_admin_chat_id', sanitize_text_field($_POST['shec_admin_chat_id']));
+        if (isset($_POST['shec_prompt_final']))     update_option('shec_prompt_final',     shec_sanitize_prompt_text($_POST['shec_prompt_final']));
+
+        // اکشن‌های وبهوک (در همان فرم)
+        if (isset($_POST['shec_action'])) {
+            $token  = trim((string) get_option('shec_telegram_api', ''));
+            $url    = home_url('/wp-json/shec/v1/telegram/webhook');
+            $secret = get_option('shec_tg_secret', '');
+            if ($token) {
+                if ($_POST['shec_action'] === 'set_webhook') {
+                    $args = array(
+                        'timeout' => 15,
+                        'body'    => array('url' => $url) + ($secret ? array('secret_token' => $secret) : array()),
+                    );
+                    $res = wp_remote_post("https://api.telegram.org/bot{$token}/setWebhook", $args);
+                    $tg_msg = 'نتیجه setWebhook: ' . wp_kses_post(wp_remote_retrieve_body($res));
+                } elseif ($_POST['shec_action'] === 'delete_webhook') {
+                    $res = wp_remote_post("https://api.telegram.org/bot{$token}/deleteWebhook", array('timeout'=>15));
+                    $tg_msg = 'نتیجه deleteWebhook: ' . wp_kses_post(wp_remote_retrieve_body($res));
+                } elseif ($_POST['shec_action'] === 'info_webhook') {
+                    $res = wp_remote_get("https://api.telegram.org/bot{$token}/getWebhookInfo", array('timeout'=>15));
+                    $tg_msg = 'وضعیت getWebhookInfo: ' . wp_kses_post(wp_remote_retrieve_body($res));
+                }
+            } else {
+                $tg_msg = 'توکن ربات خالی است.';
+            }
+        }
+
         echo '<div class="updated"><p>تنظیمات با موفقیت ذخیره شد.</p></div>';
+        if ($tg_msg) {
+            echo '<div class="notice notice-info"><pre style="white-space:pre-wrap;margin:8px 0;padding:8px;border:1px solid #ddd;background:#fff;">'.esc_html($tg_msg).'</pre></div>';
+        }
     }
 
+    // مقادیر فعلی
     $api_key  = get_option('shec_api_key', '');
     $sms_api  = get_option('shec_sms_api', '');
     $admin_id = get_option('shec_admin_chat_id', '');
@@ -607,7 +641,7 @@ function shec_display_settings() {
 
     shec_admin_wrap_open('settings', 'تنظیمات افزونه');
 
-    echo '<form method="POST" class="shec-form">';
+    echo '<form method="POST" class="shec-form" id="shec-settings-form">';
 
     echo '<div class="shec-field"><label>API Key (OpenAI)</label>
           <input type="text" name="shec_api_key" value="'.esc_attr($api_key).'" /></div>';
@@ -615,17 +649,24 @@ function shec_display_settings() {
     echo '<div class="shec-field"><label>پنل SMS</label>
           <input type="text" name="shec_sms_api" value="'.esc_attr($sms_api).'" /></div>';
 
-    echo '<div class="shec-field"><label>ربات تلگرام</label>
+    echo '<h3 class="shec-title" style="margin:30px 0 10px;">تنظیمات تلگرام</h3>';
+
+    echo '<div class="shec-field"><label>ربات تلگرام (توکن)</label>
           <input type="text" name="shec_telegram_api" value="'.esc_attr($telegram).'" /></div>';
 
     echo '<div class="shec-field"><label>Chat ID ادمین</label>
-      <input type="text" name="shec_admin_chat_id" value="'.esc_attr($admin_id).'" /></div>';
+          <input type="text" name="shec_admin_chat_id" value="'.esc_attr($admin_id).'" /></div>';
+
+    // باکس وبهوک (دکمه‌ها submit همین فرم هستند)
+    shec_admin_render_telegram_webhook_box();
 
     echo '<hr class="shec-sep"/>';
 
+    echo '<h3 class="shec-title">تنظیمات پرامپت</h3>';
+
     echo '<div class="shec-field"><label>پرامپت سؤالات (بعد از استپ ۴)</label>
           <p class="shec-help">از <code>{{SUMMARY_JSON}}</code> استفاده کن. خروجی باید دقیقاً JSON با کلید <code>questions</code> و ۴ سؤال باشد.</p>
-          <textarea name="shec_prompt_questions" rows="14">'.esc_textarea($p_q).'</textarea>
+          <textarea style="width:100%;" name="shec_prompt_questions" rows="14">'.esc_textarea($p_q).'</textarea>
           <div class="shec-actions">
             <button type="button" class="button" data-restore="questions">بازگردانی پیش‌فرض</button>
           </div>
@@ -633,7 +674,7 @@ function shec_display_settings() {
 
     echo '<div class="shec-field"><label>پرامپت نهایی (استپ ۵)</label>
           <p class="shec-help">از <code>{{PACK_JSON}}</code> استفاده کن. خروجی باید JSON با کلیدهای <code>method</code>، <code>graft_count</code>، <code>analysis</code> باشد.</p>
-          <textarea name="shec_prompt_final" rows="14">'.esc_textarea($p_f).'</textarea>
+          <textarea style="width:100%;" name="shec_prompt_final" rows="14">'.esc_textarea($p_f).'</textarea>
           <div class="shec-actions">
             <button type="button" class="button" data-restore="final">بازگردانی پیش‌فرض</button>
           </div>
@@ -642,7 +683,7 @@ function shec_display_settings() {
     echo '<p><input type="submit" value="ذخیره" class="button button-primary" /></p>';
     echo '</form>';
 
-    // اتوسایز + بازگردانی پیش‌فرض
+    // JS کوچک همانی که قبلاً داشتی
     ?>
     <script>
     (function(){
@@ -662,8 +703,8 @@ function shec_display_settings() {
           }).then(r=>r.json()).then(json=>{
             if (json && json.success && json.data && json.data.prompt) {
               const txt = (type==='questions')
-                ? wrap.querySelector('textarea[name=\"shec_prompt_questions\"]')
-                : wrap.querySelector('textarea[name=\"shec_prompt_final\"]');
+                ? wrap.querySelector('textarea[name="shec_prompt_questions"]')
+                : wrap.querySelector('textarea[name="shec_prompt_final"]');
               txt.value = json.data.prompt;
               txt.dispatchEvent(new Event('input'));
             }
@@ -676,6 +717,7 @@ function shec_display_settings() {
 
     shec_admin_wrap_close();
 }
+
 
 /** =========================
  *  Restore default prompts (AJAX)
