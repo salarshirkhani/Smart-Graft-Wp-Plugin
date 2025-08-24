@@ -591,11 +591,13 @@ function shec_display_settings() {
         if (isset($_POST['shec_telegram_api']))     update_option('shec_telegram_api', sanitize_text_field($_POST['shec_telegram_api']));
         if (isset($_POST['shec_prompt_questions'])) update_option('shec_prompt_questions', shec_sanitize_prompt_text($_POST['shec_prompt_questions']));
         if (isset($_POST['shec_prompt_final']))     update_option('shec_prompt_final', shec_sanitize_prompt_text($_POST['shec_prompt_final']));
+        if (isset($_POST['shec_admin_chat_id'])) update_option('shec_admin_chat_id', sanitize_text_field($_POST['shec_admin_chat_id']));
         echo '<div class="updated"><p>تنظیمات با موفقیت ذخیره شد.</p></div>';
     }
 
     $api_key  = get_option('shec_api_key', '');
     $sms_api  = get_option('shec_sms_api', '');
+    $admin_id = get_option('shec_admin_chat_id', '');
     $telegram = get_option('shec_telegram_api', '');
     $p_q      = get_option('shec_prompt_questions', '');
     $p_f      = get_option('shec_prompt_final', '');
@@ -615,6 +617,9 @@ function shec_display_settings() {
 
     echo '<div class="shec-field"><label>ربات تلگرام</label>
           <input type="text" name="shec_telegram_api" value="'.esc_attr($telegram).'" /></div>';
+
+    echo '<div class="shec-field"><label>Chat ID ادمین</label>
+      <input type="text" name="shec_admin_chat_id" value="'.esc_attr($admin_id).'" /></div>';
 
     echo '<hr class="shec-sep"/>';
 

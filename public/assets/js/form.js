@@ -37,13 +37,14 @@ $(function () {
       setTimeout(()=> $el.removeClass('shake'), 400);
     },
   };
+  window.Utils = Utils;
+
 
   /* =========================
    * API
    * ========================= */
   const API = {
     post(action, data, dataType='json'){
-      // همیشه هر دو نانس را بفرست (برخی هاست‌ها یکی را می‌خوان)
       return $.post(
         shec_ajax.url,
         Object.assign({_nonce:shec_ajax.nonce, _wpnonce:shec_ajax.nonce, action}, data||{}),
@@ -58,25 +59,118 @@ $(function () {
     },
     step4(payload){ return this.post('shec_step4', payload); },
     step5(payload){ return this.post('shec_step5', payload); },
-
-    // ✅ بازنویسی شد تا از $.ajax با timeout و هر دو نانس استفاده کند
     aiQuestions(user_id){
       return $.ajax({
         url: shec_ajax.url,
         type: 'POST',
         dataType: 'json',
         timeout: 25000,
-        data: {
-          action: 'shec_ai_questions',
-          user_id: user_id,
-          _nonce: shec_ajax.nonce,
-          _wpnonce: shec_ajax.nonce
-        }
+        data: { action: 'shec_ai_questions', user_id, _nonce:shec_ajax.nonce, _wpnonce:shec_ajax.nonce }
       });
     },
-
     finalize(user_id, answers){ return this.post('shec_finalize', {user_id, answers}); },
   };
+
+  /* =========================
+   * Domain helpers (HE_*)
+   * ========================= */
+  const HE_GRAFT_TABLE = {
+    male:   {1:8000, 2:10000, 3:12000, 4:14000, 5:16000, 6:18000},
+    female: {1:4000, 2: 8000, 3:10000, 4:12000, 5:14000, 6:16000}
+  };
+  const HE_WARNINGS = {
+    diabetes:    "اگر دچار دیابت هستید، کاشت مو تنها در صورتی ممکن است که بیماری تحت کنترل کامل باشد. دیابت می‌تواند بر روند بهبودی تأثیر بگذارد و خطر عفونت پس از جراحی را افزایش دهد. قبل از کاشت، تأییدیه کتبی پزشک معالج لازم است.",
+    coagulation: "کاشت مو در بیماران مبتلا به اختلالات انعقاد خون ممکن است دشوار باشد و خونریزی را در طول عمل افزایش دهد و بر بقای گرافت‌ها تأثیر بگذارد. تأییدیه کتبی پزشک معالج لازم است.",
+    cardiac:     "کاشت مو با وجود بیماری‌های قلبی/عروقی تنها در صورتی ممکن است که بیماری تحت کنترل کامل باشد و ممکن است ریسک داروی بی‌حسی و نقاهت بالاتر برود. تأییدیه کتبی پزشک لازم است.",
+    thyroid:     "کاشت مو برای اختلالات تیروئید در صورت متعادل بودن سطح هورمون‌ها امکان‌پذیر است؛ حالت کنترل‌نشده می‌تواند بر رشد مو و بقای گرافت‌ها اثر بگذارد. تأییدیه کتبی پزشک لازم است.",
+    immunodef:   "برای نقص سیستم ایمنی (مانند برخی موارد HIV یا شیمی‌درمانی) معمولاً کاشت توصیه نمی‌شود؛ بهبودی کندتر و عوارض بیشتر است. تصمیم نهایی با ارزیابی تخصصی و تأیید پزشک است.",
+    autoimmune:  "در بیماری‌های خودایمنی، بسته به نوع و فعالیت بیماری، کاشت ممکن است دشوار یا غیرقابل انجام باشد و روی پذیرش گرافت‌ها اثر بگذارد. ارزیابی تخصصی و تأیید پزشک لازم است."
+  };
+  const HE_SCALP_WARNINGS = {
+    active_infection: "اگر عفونت فعال پوست سر دارید نمی‌توان بلافاصله برای کاشت مو اقدام کرد...",
+    psoriasis:        "اگر پسوریازیس شما فعال است—به‌خصوص اگر نواحی وسیعی از پوست سر درگیر باشد—ابتدا باید آن را کنترل/درمان کنید...",
+    fungal_derm:      "قبل از در نظر گرفتن کاشت مو، باید درماتیت سبورئیک/عفونت قارچی کنترل شود...",
+    folliculitis:     "اگر دچار فولیکولیت هستید، قبل از کاشت مو باید آن را درمان کنیم...",
+    areata:           "کاشت مو در مرحلهٔ فعال ریزش سکه‌ای (آلوپسی آره‌آتا) امکان‌پذیر نیست...",
+    scarring_alo:     "آلوپسی به همراه اسکار می‌تواند میزان موفقیت پیوند را تا حدود 70٪ کاهش دهد...",
+    scar:             "جای زخم (اسکار) روی پوست سر می‌تواند موفقیت کاشت مو را تا حدود ۷۰٪ کاهش دهد..."
+  };
+  function heMapLabelToWarningKey(label){
+    if(!label) return null;
+    const t = String(label);
+    if (t.includes('دیابت')) return 'diabetes';
+    if (t.includes('انعقاد')) return 'coagulation';
+    if (t.includes('قلب'))    return 'cardiac';
+    if (t.includes('تیروئید'))return 'thyroid';
+    if (t.match(/ایمنی|HIV|شیمی/)) return 'immunodef';
+    if (t.match(/خودایمنی|لوپوس|آلوپسی/)) return 'autoimmune';
+    return null;
+  }
+  function heMapScalpLabelToKey(label){
+    if (!label) return null;
+    var t = String(label);
+    if (t.indexOf('عفونت فعال پوست سر') > -1)               return 'active_infection';
+    if (t.indexOf('پسوریازیس') > -1)                         return 'psoriasis';
+    if (t.indexOf('عفونت قارچی') > -1 || t.indexOf('سبورئیک') > -1) return 'fungal_derm';
+    if (t.indexOf('فولیکولیت') > -1)                         return 'folliculitis';
+    if (t.indexOf('ریزش سکه‌ای') > -1 || t.indexOf('آلوپسی آره‌آتا') > -1) return 'areata';
+    if (t.indexOf('آلوپسی به همراه اسکار') > -1)            return 'scarring_alo';
+    if (t.indexOf('جای زخم') > -1 || t.indexOf('اسکار') > -1) return 'scar';
+    if (t.indexOf('هیچکدام') > -1)                           return null;
+    return null;
+  }
+  function heNormalizeGender(g){
+    var t = (g || '').toString().toLowerCase();
+    if (t === 'female' || t === 'زن')  return 'female';
+    return 'male';
+  }
+  function heRenderAllWarnings(opt){
+    opt = opt || {};
+    var systemicLabels = Array.isArray(opt.systemicLabels) ? opt.systemicLabels : [];
+    var scalpLabels    = Array.isArray(opt.scalpLabels)    ? opt.scalpLabels    : [];
+    var anchorSel      = opt.anchor || '#he-medical-warning-wrap';
+
+    var host = document.querySelector(anchorSel);
+    if (!host) return;
+    host.innerHTML = '';
+
+    var sysKeys = Array.from(new Set(systemicLabels.map(heMapLabelToWarningKey).filter(Boolean)));
+    sysKeys.forEach(function(k){
+      var div = document.createElement('div');
+      div.className = 'he-warn-card';
+      div.innerHTML = '<p>' + (HE_WARNINGS[k] || '') + '</p>';
+      host.appendChild(div);
+    });
+
+    var scalpKeys = Array.from(new Set(scalpLabels.map(heMapScalpLabelToKey).filter(Boolean)));
+    scalpKeys.forEach(function(k){
+      var div = document.createElement('div');
+      div.className = 'he-warn-card';
+      div.innerHTML = '<p>' + (HE_SCALP_WARNINGS[k] || '') + '</p>';
+      host.appendChild(div);
+    });
+
+    host.style.display = (host.children.length ? '' : 'none');
+  }
+  function heStageFromPatternValue(patternValue){
+    if (!patternValue) return null;
+    var m = String(patternValue).toLowerCase().match(/pattern[-_ ]?(\d+)/);
+    if (!m || !m[1]) return null;
+    var s = parseInt(m[1], 10);
+    if (isNaN(s)) return null;
+    if (s < 1) s = 1; if (s > 6) s = 6;
+    return s;
+  }
+  function heGraftsFromStage(gender, stage){
+    if (!stage) return null;
+    var key = heNormalizeGender(gender);
+    var tbl = HE_GRAFT_TABLE[key] || {};
+    return tbl[stage] || null;
+  }
+  function heGetSelectedPatternFromDOM(){
+    var el = document.querySelector('input[name="loss_pattern"]:checked');
+    return el ? el.value : null;
+  }
 
   /* =========================
    * UI helpers
@@ -86,7 +180,6 @@ $(function () {
       $('#step-current').text(step);
       $('#progress-bar').css('width', Math.floor((step/6)*100) + '%');
     },
-
     goToStep(step){
       $('#step2-loader').hide();
       $('.step').addClass('d-none').removeClass('active');
@@ -102,7 +195,6 @@ $(function () {
         UI.updateUploadHints(gender);
       }
     },
-
     loadStep2Images(){
       const gender = LS.get('gender','male');
       const $step2 = $('#step-2');
@@ -119,7 +211,6 @@ $(function () {
       Promise.all(imgs.map(img => new Promise(resolve => img.complete ? resolve() : img.onload = resolve)))
         .then(()=> $('#step2-loader').hide());
     },
-
     renderUploadBoxes(gender){
       const uploadPositions = {
         male:   ['روبرو','پشت سر','فرق سر','کنار سر'],
@@ -141,7 +232,6 @@ $(function () {
         `);
       });
     },
-
     loadUploadedThumbs(){
       const uploads = JSON.parse(LS.get('uploadedPics','{}'));
       for (const name in uploads) {
@@ -153,7 +243,6 @@ $(function () {
         }
       }
     },
-
     updateUploadHints(gender){
       const maleImgs = [
         'https://fakhraei.clinic/wp-content/uploads/2025/07/New-Project-80.webp',
@@ -172,13 +261,8 @@ $(function () {
         if (imgs[i]) { $(this).attr('src', imgs[i]).parent().show(); }
         else { $(this).parent().hide(); }
       });
-      $('.angles').css({
-        display:'flex',
-        justifyContent: (gender==='female') ? 'center' : 'space-between',
-        gap:'12px'
-      });
+      $('.angles').css({ display:'flex', justifyContent: (gender==='female') ? 'center' : 'space-between', gap:'12px' });
     },
-
     ensureStep5Containers(){
       if (!$('#step5-content').length) return;
       if (!$('#ai-questions-box').length){
@@ -193,7 +277,6 @@ $(function () {
 
     /* ---------- Loader v2 (مرحله ۵) ---------- */
     __aiTimers: [],
-
     step5ShowLoader() {
       const $loader  = $('#step5-loader');
       const $content = $('#step5-content');
@@ -212,7 +295,7 @@ $(function () {
         'در حال بررسی دغدغه و نگرانی شما',
         'در حال بررسی بیماری ها و داروهای نوشته شده',
         'در حال ایجاد 4 سوال اختصاصی برای شما توسط هوش مصنوعی فخرایی',
-        'در حال آماده سازی نهایی ...' ,
+        'در حال آماده سازی نهایی ...'
       ];
 
       (UI.__aiTimers || []).forEach(clearTimeout);
@@ -233,21 +316,15 @@ $(function () {
       schedule(messages[3], 6000);
       schedule(messages[4], 8000);
     },
-
     step5HideLoader(){
       (UI.__aiTimers || []).forEach(clearTimeout);
       UI.__aiTimers = [];
       $('#step5-loader').fadeOut(300);
       $('#step5-content').fadeIn(200);
     },
-
-    /**
-     * تضمین می‌کند لودر «حداقل» minMs بماند
-     */
     waitForAiOrTimeout(promise, minMs = 10000){
       const dfd = jQuery.Deferred();
       const t0 = Date.now();
-
       const p = promise && typeof promise.then === 'function'
         ? promise
         : jQuery.Deferred().resolve().promise();
@@ -258,15 +335,12 @@ $(function () {
         const id = setTimeout(function(){ dfd.resolve(); }, remain);
         UI.__aiTimers.push(id);
       });
-
       return dfd.promise();
     },
 
-    // ===== Final step loader (Step 5 -> Step 6) =====
+    // ===== Final-step loader =====
     finalTimers: [],
-
     ensureLottieLoaded(){
-      // اگر dotlottie-wc قبلاً رجیستر شده، هیچ‌کار
       if (window.customElements && customElements.get('dotlottie-wc')) return;
       if (document.getElementById('dotlottie-wc-loader')) return;
       const s = document.createElement('script');
@@ -275,7 +349,6 @@ $(function () {
       s.src = 'https://unpkg.com/@lottiefiles/dotlottie-wc@latest/dist/dotlottie-wc.js';
       document.head.appendChild(s);
     },
-
     ensureFinalLoaderDom(){
       if (!$('#final-step-loader').length) {
         UI.ensureLottieLoaded();
@@ -295,7 +368,6 @@ $(function () {
         $host.append(tpl);
       }
     },
-
     finalStepShowLoader(){
       UI.ensureFinalLoaderDom();
       const $overlay = $('#final-step-loader');
@@ -328,7 +400,6 @@ $(function () {
       schedule(msgs[3], 6000);
       schedule(msgs[4], 8000);
     },
-
     finalStepHideLoader(){
       UI.finalTimers.forEach(id => clearTimeout(id));
       UI.finalTimers = [];
@@ -356,7 +427,6 @@ $(function () {
         `);
       });
     },
-
     renderQuestionsFallback(){
       UI.renderQuestions([
         'آیا در خانواده‌تان سابقهٔ ریزش مو وجود دارد؟',
@@ -371,7 +441,6 @@ $(function () {
    * AI loader (Step 5)
    * ========================= */
   let __aiQOnce = false;
-  let __aiQInflight = false;
 
   function loadAiQuestions(force=false){
     const uid = parseInt(LS.get('userId') || 0, 10);
@@ -388,11 +457,8 @@ $(function () {
       return jQuery.Deferred().resolve().promise();
     }
 
-    __aiQInflight = true;
-
     const req = API.aiQuestions(uid);
 
-    // اگر بعد از ۷ ثانیه هنوز pending بود، پیام نرم بده
     const pendingTimer = setTimeout(function(){
       try{
         if (req && typeof req.state === 'function' && req.state() === 'pending'){
@@ -442,10 +508,293 @@ $(function () {
       })
       .always(function(){
         clearTimeout(pendingTimer);
-        __aiQInflight = false;
         __aiQOnce = true;
       });
   }
+
+  /* =========================
+   * RENDER FINAL (shared for step6 & token page)
+   * ========================= */
+// اجازه‌ی پرش به استپ ۶ فقط اگر لازم بود
+
+window.SHEC_renderFinal = function(fin){
+  // 1) نرمال‌سازی ورودی
+  var payload = (fin && fin.user) ? fin : ((window.Utils && Utils.wpUnwrap) ? Utils.wpUnwrap(fin) : fin);
+  if (!payload || !payload.user) {
+    jQuery('#ai-result-box').html('<div style="padding:24px">دادهٔ نتیجه پیدا نشد.</div>');
+    return;
+  }
+
+  // ---------- Helpers (فال‌بک‌های سبک اگر در این صفحه تعریف نشده باشند) ----------
+  function heNormalizeGender(g){ g=(g||'').toString().toLowerCase(); return (g==='female' || g==='زن')?'female':'male'; }
+  function heStageFromPatternValueLocal(v){
+    if (!v) return null;
+    var m = String(v).toLowerCase().match(/pattern[-_ ]?(\d+)/);
+    if (!m || !m[1]) return null;
+    var s = parseInt(m[1],10); if (isNaN(s)) return null;
+    if (s<1) s=1; if (s>6) s=6; return s;
+  }
+  var HE_GRAFT_TABLE = {
+    male:   {1:8000, 2:10000, 3:12000, 4:14000, 5:16000, 6:18000},
+    female: {1:4000, 2: 8000, 3:10000, 4:12000, 5:14000, 6:16000}
+  };
+  function heGraftsFromStageLocal(gender, stage){
+    if (!stage) return null;
+    var key = heNormalizeGender(gender);
+    var tbl = HE_GRAFT_TABLE[key] || {};
+    return tbl[stage] || null;
+  }
+
+  // ---------- Parse user ----------
+  var d = payload;
+  var u       = d.user || {};
+  var first   = (u.contact && u.contact.first_name ? u.contact.first_name : '').trim();
+  var last    = (u.contact && u.contact.last_name  ? u.contact.last_name  : '').trim();
+  var full    = (first || last) ? (first + (first&&last?' ':'') + last) : '—';
+  var ageVal  = u.age || (u.contact ? u.contact.age : '') || '—';
+  var pattern = u.loss_pattern || u.pattern || (window.heGetSelectedPatternFromDOM ? heGetSelectedPatternFromDOM() : null);
+  var gender  = (u.gender || (u.contact ? u.contact.gender : '') || 'male').toLowerCase();
+  var concern = (u.medical && u.medical.concern) ? u.medical.concern : '—';
+
+  // Stage & graft (با گارد)
+  var stage   = (window.heStageFromPatternValue ? heStageFromPatternValue(pattern) : heStageFromPatternValueLocal(pattern));
+  var graftN  = (window.heGraftsFromStage ? heGraftsFromStage(gender, stage) : heGraftsFromStageLocal(gender, stage));
+  var graftByTable = graftN ? Number(graftN).toLocaleString('fa-IR') : '—';
+
+  // Medical
+  var med = u.medical || {};
+  var splitFa = function(str){ return (!str||typeof str!=='string')? [] : str.split(/[,،;\n]/g).map(function(s){return s.trim();}).filter(Boolean); };
+  var joinFa  = function(arr){ return (Array.isArray(arr)&&arr.length)? arr.join('، ') : '—'; };
+  var drugsLabels = (med.has_meds === 'yes')
+    ? (splitFa(med.meds_list).length ? splitFa(med.meds_list) : ['مصرف دارو'])
+    : ['عدم مصرف دارو'];
+  var dermLabels  = splitFa(med.scalp_conditions);
+  var sysLabels   = splitFa(med.other_conditions);
+  var showMedical = (drugsLabels.length || dermLabels.length || sysLabels.length) > 0;
+  var warnHostId  = 'he-medical-warning-wrap-' + Date.now();
+
+  // ---------- AI payload ----------
+  var ai = {};
+  try {
+    ai = (typeof d.ai_result === 'string') ? JSON.parse(d.ai_result || '{}') : (d.ai_result || {});
+  } catch(_){ ai = {}; }
+
+  // ثابت‌های نمایشی
+  var methodTxt = 'FIT';
+  var duration  = 'دو جلسه هشت ساعته';
+  var logoUrl   = 'https://fakhraei.clinic/wp-content/uploads/2024/02/Group-1560-300x300.png.webp';
+
+  // توضیح الگو (Norwood/Ludwig)
+  function mapFemaleLudwig(st){ if(!st) return null; if (st<=2) return 'Ludwig I'; if (st<=4) return 'Ludwig II'; return 'Ludwig III'; }
+  var fallbackPatternExplain = (function(){
+    if (!stage) return {label:'—', what_it_is:'', why_happens:'', note:'', fit_ok:true};
+    if (gender==='female') {
+      var label = mapFemaleLudwig(stage) || 'Ludwig';
+      var what  = 'الگوی کم‌پشتی منتشر در ناحیه مرکزی سر که با پیشرفت، وسعت بیشتری می‌گیرد.';
+      var why   = 'اغلب مرتبط با عوامل هورمونی و ژنتیکی؛ استرس و سبک زندگی هم اثر دارند.';
+      var note  = (label==='Ludwig I') ? 'در این مرحله معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود.' : '';
+      return {label:label, what_it_is:what, why_happens:why, note:note, fit_ok:true};
+    } else {
+      var labelM = 'Norwood ' + stage;
+      var whatM  = (stage>=5)
+        ? 'درگیری جلوی سر و ورتکس با باریک‌شدن پل میانی؛ برای بازگردانی خط مو و تراکم، برداشت گسترده لازم می‌شود.'
+        : 'عقب‌نشینی خط جلویی یا کم‌پشتی موضعی که با پیشرفت، نواحی بیشتری را درگیر می‌کند.';
+      var whyM   = 'معمولاً ژنتیکی و مرتبط با حساسیت فولیکول‌ها به آندروژن‌ها؛ استرس و سبک زندگی می‌تواند شدت را تغییر دهد.';
+      var noteM  = (stage===1) ? 'در این مرحله معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود.' : '';
+      return {label:labelM, what_it_is:whatM, why_happens:whyM, note:noteM, fit_ok:true};
+    }
+  })();
+  var patExplain = Object.assign({}, fallbackPatternExplain, (ai.pattern_explain||{}));
+
+  // دغدغه‌ی همدلانه (ترجیح با AI؛ در نبود → fallback)
+  var concernBox = (typeof ai.concern_box==='string' && ai.concern_box.trim())
+    ? ai.concern_box.trim()
+    : (function(){
+        var c = concern.toString();
+        if (/هزینه|قیمت/.test(c)) return 'می‌دانیم هزینه برایتان مهم است. در کلینیک فخرائی برآورد شفاف و منطقی ارائه می‌شود و کیفیت، اولویت ماست. می‌توانید پیش از تصمیم، مشاوره مالی دریافت کنید تا با خیال راحت برنامه‌ریزی کنید.';
+        if (/درد/.test(c))       return 'نگران درد نباشید؛ در طول عمل از بی‌حسی موضعی استفاده می‌شود و وضعیت شما مدام پایش می‌گردد تا تجربه‌ای بسیار قابل‌تحمل داشته باشید.';
+        if (/نقاهت/.test(c))    return 'دوران نقاهت کوتاه و قابل‌مدیریت است. با راهنمای مرحله‌به‌مرحله و مراقبت‌های ساده، به‌خوبی از این مرحله عبور می‌کنید.';
+        if (/طول|زمان/.test(c)) return 'رشد مو مرحله‌ای است؛ از ماه‌های اول تغییرات آغاز می‌شود و در ادامه تراکم طبیعی‌تر می‌شود. مسیر روشن است و کنار شما هستیم.';
+        return 'نگرانی شما کاملاً قابل درک است. با پاسخ شفاف و مسیر درمان مشخص، همراه شما هستیم تا با آرامش تصمیم بگیرید.';
+      })();
+
+  // سؤالات پیگیری
+  var followupsData = (((u.ai||{}).followups)||{});
+  var answersArr = Array.isArray(followupsData.answers) ? followupsData.answers : [];
+  var qaItems = Array.isArray(followupsData.qa) && followupsData.qa.length
+    ? followupsData.qa
+    : (Array.isArray(followupsData.questions)
+        ? followupsData.questions.map(function(q,i){ return {q:q, a:(answersArr[i]||'')}; })
+        : []);
+  var faYesNo = function(v){ return (/^(yes|true|بله)$/i.test(String(v))) ? 'بله' : ((/^(no|false|خیر)$/i.test(String(v))) ? 'خیر' : (String(v||'').trim()||'—')); };
+
+  var aiFollowups = Array.isArray(ai.followups) ? ai.followups : [];
+  var norm = function(s){ return String(s||'').replace(/\s+/g,'').replace(/[‌\u200c]/g,'').trim(); };
+  function getTipFor(qText, idx){
+    var byIndex = aiFollowups[idx] && aiFollowups[idx].tip || aiFollowups[idx] && aiFollowups[idx].ai_tip;
+    if (byIndex && String(byIndex).trim()) return String(byIndex).trim();
+    var t = norm(qText);
+    var hit = aiFollowups.find(function(x){ return norm(x.q||'') === t; });
+    var tip = hit && (hit.tip || hit.ai_tip);
+    return (tip && String(tip).trim()) ? String(tip).trim() : '';
+  }
+
+  var followupSummary = (typeof ai.followup_summary==='string' && ai.followup_summary.trim())
+    ? ai.followup_summary.trim()
+    : (function(){
+        var get = function(re){
+          var it = qaItems.find(function(x){ return re.test(String(x.q||'')); });
+          return it ? faYesNo(it.a) : '';
+        };
+        var smoking = get(/سیگار|قلیان/i);
+        var stress  = get(/استرس/i);
+        var sleep   = get(/خواب/i);
+        var worse   = get(/شدت|بدتر|افزایش/i);
+        var infect  = get(/عفونت|التهاب|پوست سر/i);
+
+        var s = [];
+        s.push('🤖 با توجه به پاسخ‌هایی که دادید، یک برنامه‌ی عملی برای آمادگی قبل از کاشت پیشنهاد می‌کنیم. ');
+        if (smoking==='بله') s.push('بهتر است از ۱۰ روز پیش از کاشت تا یک هفته بعد، دخانیات را کنار بگذارید تا خون‌رسانی بهتر و بقای گرافت‌ها بیشتر شود. ');
+        if (sleep==='خیر')  s.push('کم‌خوابی را با تنظیم ساعت خواب و کاهش کافئین عصر اصلاح کنید؛ خواب کافی التهاب را پایین می‌آورد و ترمیم را سریع‌تر می‌کند. ');
+        if (stress==='بله') s.push('چند دقیقه تمرین تنفس یا پیاده‌روی روزانه اضافه کنید؛ همین عادت‌ها اثر ملموسی بر ریزش ناشی از استرس دارد. ');
+        if (worse==='بله')  s.push('با توجه به افزایش ریزش، بهتر است تصمیم درمانی را به تعویق نیندازید و درمان نگه‌دارنده را هم‌زمان آغاز کنید. ');
+        if (infect==='بله') s.push('در صورت التهاب/عفونت پوست سر، ابتدا درمان کامل انجام می‌شود تا شانس بقای گرافت‌ها بالا برود. ');
+        s.push('در مجموع مسیر درمان شما روشن است و تیم فخرائی کنار شماست.');
+        var txt = s.join('');
+        return (txt.length < 220) ? (txt + ' رعایت بهداشت پوست سر و پیروی از دستورهای مراقبتی، کیفیت ناحیه گیرنده را بهتر می‌کند و روند ترمیم را سرعت می‌دهد.') : txt;
+      })();
+
+  var extraText = (ai.extra_analysis && ai.extra_analysis.trim())
+    ? ai.extra_analysis.trim()
+    : ((ai.analysis && ai.analysis.trim()) ? ai.analysis.trim() : '');
+
+  var qaHtml = (function(){
+    return `
+      <div class="ai-section-title" style="margin-top:18px;">نتیجه سوالات ایجاد شده هوشمند</div>
+      <ol class="ai-qa">
+        ${qaItems.map(function(item, i){
+          var tip = getTipFor(item.q, i);
+          var ans = faYesNo(item.a);
+          var ansClass = /بله/.test(ans) ? 'ans-yes' : (/خیر/.test(ans) ? 'ans-no' : '');
+          return `
+            <li class="ai-qa-item">
+              <div class="ai-qa-head">
+                <div class="num">${i+1}</div>
+                <div class="ai-qa-q">❓ ${(item.q||'').trim()}</div>
+              </div>
+              <div class="ai-qa-a">
+                <span class="label">پاسخ:</span>
+                <span class="ans-pill ${ansClass}">${ans}</span>
+              </div>
+              ${tip ? `
+                <div class="ai-qa-tip" style="display:flex;gap:6px;align-items:flex-start;text-align:justify">
+                  <span class="bot">🤖</span>
+                  <div class="text">${tip}</div>
+                </div>` : ``}
+            </li>`;
+        }).join('')}
+      </ol>
+    `;
+  })();
+
+  // ---------- Render ----------
+  jQuery('#ai-result-box').html(`
+    <div class="ai-result-container">
+      <div class="ai-hero">
+        <div class="ai-logo">${logoUrl ? `<img src="${logoUrl}" alt="Fakhraei">` : ''}</div>
+        <div class="ai-title">برنامه اختصاصی کاشت موی شما آماده است!</div>
+        <div class="ai-check">✓</div>
+        <div class="ai-sub">از اعتماد شما سپاسگزاریم</div>
+      </div>
+
+      <div class="ai-section-title">اطلاعات شخصی شما</div>
+      <div class="ai-chip-row">
+        <div class="ai-chip">
+          <span class="ai-chip-label">نام و نام خانوادگی</span>
+          <div class="ai-chip-value">${full}</div>
+        </div>
+        <div class="ai-chip">
+          <span class="ai-chip-label">الگوی ریزش مو</span>
+          <div class="ai-chip-value">${pattern ?? '—'}</div>
+        </div>
+        <div class="ai-chip">
+          <span class="ai-chip-label">بازه سنی</span>
+          <div class="ai-chip-value">${ageVal}</div>
+        </div>
+      </div>
+
+      <div class="ai-note" style="text-align:justify">
+        🤖 <strong>${patExplain.label || '—'}</strong> — ${patExplain.what_it_is || ''}<br>
+        ${patExplain.why_happens ? (patExplain.why_happens + '<br>') : ''}
+        ${patExplain.fit_ok ? 'این الگو با روش FIT/FUE در کلینیک فخرائی قابل درمان است.' : ''} ${patExplain.note ? ('<br>'+patExplain.note) : ''}
+      </div>
+
+      <div class="ai-section-title" style="margin-top:18px;">مهم‌ترین دغدغهٔ شما</div>
+      <div class="ai-note" style="margin-bottom:8px">${concern}</div>
+      <div class="ai-note" style="text-align:justify">🤖 ${concernBox}</div>
+
+      <hr class="ai-divider"/>
+
+      <div class="ai-stats">
+        <div class="ai-stat">
+          <div class="ai-stat-label">مدت زمان تقریبی</div>
+          <div class="ai-stat-value">${duration}</div>
+        </div>
+        <div class="ai-stat ai-stat--accent">
+          <div class="ai-stat-label">تکنیک پیشنهادی</div>
+          <div class="ai-stat-value">${methodTxt}</div>
+        </div>
+        <div class="ai-stat">
+          <div class="ai-stat-label">تعداد تار موی پیشنهادی</div>
+          <div class="ai-stat-value">${graftByTable}</div>
+        </div>
+      </div>
+
+      ${showMedical ? `
+        <div class="ai-section-title" style="margin-top:22px;">وضعیت پزشکی ثبت‌شده</div>
+        <div class="ai-stats">
+          <div class="ai-stat">
+            <div class="ai-stat-label">دارو مورد استفاده</div>
+            <div class="ai-stat-value">${joinFa(drugsLabels)}</div>
+          </div>
+          <div class="ai-stat">
+            <div class="ai-stat-label">بیماری پوستی</div>
+            <div class="ai-stat-value">${joinFa(dermLabels)}</div>
+          </div>
+          <div class="ai-stat">
+            <div class="ai-stat-label">بیماری زمینه‌ای</div>
+            <div class="ai-stat-value">${joinFa(sysLabels)}</div>
+          </div>
+        </div>
+        <div id="${warnHostId}"></div>
+      ` : ''}
+
+      ${qaHtml}
+
+      <div class="ai-section-title" style="margin-top:18px;">جمع‌بندی پاسخ‌ها و توصیه‌های اختصاصی</div>
+      <div class="ai-note" style="text-align:justify">🤖 ${followupSummary}</div>
+
+      ${extraText ? `
+        <div class="ai-section-title" style="margin-top:18px;">توضیحات اضافه</div>
+        <div class="ai-note" style="text-align:justify">🤖 ${extraText}</div>
+      ` : ''}
+    </div>
+  `);
+
+  // هشدارهای پزشکی: فقط اگر تابع موجود بود
+  if (typeof window.heRenderAllWarnings === 'function') {
+    heRenderAllWarnings({
+      systemicLabels: sysLabels,
+      scalpLabels: dermLabels,
+      anchor: '#' + warnHostId
+    });
+  }
+
+  // هرگز خودکار به Step 6 نرو مگر اجازه داده باشی
+  if (window.SHEC_ALLOW_STEP6 && typeof window.UI !== 'undefined' && UI.goToStep && document.querySelector('#step-6')) {
+    UI.goToStep(6);
+  }
+};
 
   /* =========================
    * Steps bindings
@@ -455,9 +804,12 @@ $(function () {
   UI.goToStep(parseInt(LS.get('currentStep')) || 0);
 
   // Step 0 → 1
-  $('#agree-btn').on('click', ()=> UI.goToStep(1));
-
-  // Step 1: gender + age + mobile + confidence (اجباری)
+  $(document).on('click', '#agree-btn', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    UI.goToStep(1);
+  });
+  // Step 1
   $('#form-step-1').on('submit', function(e){
     e.preventDefault();
 
@@ -472,12 +824,9 @@ $(function () {
     if (!confidence) return toastr.error('لطفاً میزان اعتماد به نفس را انتخاب کنید');
     if (!/^09\d{9}$/.test(mobile)) return toastr.error('شماره موبایل معتبر وارد کنید (مثلاً 09xxxxxxxxx)');
 
-    const payload = {
-      user_id: LS.get('userId') || 0,
-      gender, age, mobile, confidence
-    };
-
+    const payload = { user_id: LS.get('userId') || 0, gender, age, mobile, confidence };
     const $btn = $(this).find('button[type="submit"]').prop('disabled', true);
+
     API.step1(payload).done(function(res){
       const d = Utils.wpUnwrap(res);
       if (res && res.success) {
@@ -515,16 +864,14 @@ $(function () {
       .fail(()=> toastr.error('خطای سرور در مرحله ۲'));
   });
 
-  // Step 3: uploads (با محدودیت حجم)
+  // Step 3 uploads
   const HE_MAX_UPLOAD_MB = (window.shec_ajax && Number(shec_ajax.max_upload_mb)) || 5;
-
   function heFormatBytes(bytes){
     if (!bytes || bytes <= 0) return '0 B';
     const units = ['B','KB','MB','GB'];
     const i = Math.floor(Math.log(bytes)/Math.log(1024));
     return (bytes/Math.pow(1024,i)).toFixed( (i===0)?0:1 ) + ' ' + units[i];
   }
-
   $('#form-step-3').on('submit', function(e){ e.preventDefault(); UI.goToStep(4); });
 
   $(document).on('change', '.upload-box input[type="file"]', function(){
@@ -578,23 +925,19 @@ $(function () {
         $bar.css('width','0%');
       } else {
         toastr.error((res && res.message) || 'خطا در آپلود');
-        $progress.addClass('d-none');
-        $bar.css('width','0%');
-        $thumb.addClass('d-none').attr('src','');
-        $box.removeClass('upload-success');
+        $progress.addClass('d-none'); $bar.css('width','0%');
+        $thumb.addClass('d-none').attr('src',''); $box.removeClass('upload-success');
         fileInput.value = '';
       }
     }).fail(function(){
       toastr.error('خطا در ارتباط آپلود');
-      $progress.addClass('d-none');
-      $bar.css('width','0%');
-      $thumb.addClass('d-none').attr('src','');
-      $box.removeClass('upload-success');
+      $progress.addClass('d-none'); $bar.css('width','0%');
+      $thumb.addClass('d-none').attr('src',''); $box.removeClass('upload-success');
       fileInput.value = '';
     });
   });
 
-  // Step 4: medical + meds (اجباری‌سازی رادیوها و ورودی‌ها)
+  // Step 4 medical
   $(document).on('change', 'input[name="has_medical"]', function(){
     $('#has-medical-group').removeClass('error shake');
     $('input[name="has_medical"]').parent().removeClass('active');
@@ -661,7 +1004,7 @@ $(function () {
     });
   });
 
-  // Toggle active style for followup
+  // Followup toggles
   $(document).on('change','input[name^="followup_"]', function(){
     const name = $(this).attr('name');
     $(`input[name="${name}"]`).parent().removeClass('active');
@@ -675,7 +1018,7 @@ $(function () {
     const uid = parseInt(LS.get('userId') || 0, 10);
     if (!uid) { toastr.error('شناسه کاربر پیدا نشد. لطفاً فرم را از ابتدا شروع کنید.'); return; }
 
-    // 1) پاسخ‌های 4 سوال
+    // answers
     const answers = [];
     let missingIdx = 0;
     $('#ai-questions-list .followup-item').each(function(){
@@ -686,7 +1029,7 @@ $(function () {
     });
     if (missingIdx) return Utils.errorScroll(`#ai-questions-list .followup-item[data-idx="${missingIdx}"]`, 'لطفاً به همهٔ سؤالات پاسخ دهید.');
 
-    // 2) اطلاعات تماس
+    // contact
     const first_name = ($('input[name="first_name"]').val() || '').trim();
     const last_name  = ($('input[name="last_name"]').val()  || '').trim();
     const state      = ($('input[name="state"]').val()      || '').trim();
@@ -700,380 +1043,78 @@ $(function () {
     const payloadContact = { user_id: uid, first_name, last_name, state, city, social };
     const $btn = $(this).find('button[type="submit"]').prop('disabled', true);
 
-    /* ---- ثابت‌ها ---- */
-    const HE_GRAFT_TABLE = {
-      male:   {1:8000, 2:10000, 3:12000, 4:14000, 5:16000, 6:18000},
-      female: {1:4000, 2: 8000, 3:10000, 4:12000, 5:14000, 6:16000}
-    };
-    const HE_WARNINGS = {
-      diabetes:    "اگر دچار دیابت هستید، کاشت مو تنها در صورتی ممکن است که بیماری تحت کنترل کامل باشد. دیابت می‌تواند بر روند بهبودی تأثیر بگذارد و خطر عفونت پس از جراحی را افزایش دهد. قبل از کاشت، تأییدیه کتبی پزشک معالج لازم است.",
-      coagulation: "کاشت مو در بیماران مبتلا به اختلالات انعقاد خون ممکن است دشوار باشد و خونریزی را در طول عمل افزایش دهد و بر بقای گرافت‌ها تأثیر بگذارد. تأییدیه کتبی پزشک معالج لازم است.",
-      cardiac:     "کاشت مو با وجود بیماری‌های قلبی/عروقی تنها در صورتی ممکن است که بیماری تحت کنترل کامل باشد و ممکن است ریسک داروی بی‌حسی و نقاهت بالاتر برود. تأییدیه کتبی پزشک لازم است.",
-      thyroid:     "کاشت مو برای اختلالات تیروئید در صورت متعادل بودن سطح هورمون‌ها امکان‌پذیر است؛ حالت کنترل‌نشده می‌تواند بر رشد مو و بقای گرافت‌ها اثر بگذارد. تأییدیه کتبی پزشک لازم است.",
-      immunodef:   "برای نقص سیستم ایمنی (مانند برخی موارد HIV یا شیمی‌درمانی) معمولاً کاشت توصیه نمی‌شود؛ بهبودی کندتر و عوارض بیشتر است. تصمیم نهایی با ارزیابی تخصصی و تأیید پزشک است.",
-      autoimmune:  "در بیماری‌های خودایمنی، بسته به نوع و فعالیت بیماری، کاشت ممکن است دشوار یا غیرقابل انجام باشد و روی پذیرش گرافت‌ها اثر بگذارد. ارزیابی تخصصی و تأیید پزشک لازم است."
-    };
-    const HE_SCALP_WARNINGS = {
-      active_infection: "اگر عفونت فعال پوست سر دارید نمی‌توان بلافاصله برای کاشت مو اقدام کرد...",
-      psoriasis:        "اگر پسوریازیس شما فعال است—به‌خصوص اگر نواحی وسیعی از پوست سر درگیر باشد—ابتدا باید آن را کنترل/درمان کنید...",
-      fungal_derm:      "قبل از در نظر گرفتن کاشت مو، باید درماتیت سبورئیک/عفونت قارچی کنترل شود...",
-      folliculitis:     "اگر دچار فولیکولیت هستید، قبل از کاشت مو باید آن را درمان کنیم...",
-      areata:           "کاشت مو در مرحلهٔ فعال ریزش سکه‌ای (آلوپسی آره‌آتا) امکان‌پذیر نیست...",
-      scarring_alo:     "آلوپسی به همراه اسکار می‌تواند میزان موفقیت پیوند را تا حدود 70٪ کاهش دهد...",
-      scar:             "جای زخم (اسکار) روی پوست سر می‌تواند موفقیت کاشت مو را تا حدود ۷۰٪ کاهش دهد..."
-    };
-
-    function heMapLabelToWarningKey(label){
-      if(!label) return null;
-      const t = String(label);
-      if (t.includes('دیابت')) return 'diabetes';
-      if (t.includes('انعقاد')) return 'coagulation';
-      if (t.includes('قلب'))    return 'cardiac';
-      if (t.includes('تیروئید'))return 'thyroid';
-      if (t.match(/ایمنی|HIV|شیمی/)) return 'immunodef';
-      if (t.match(/خودایمنی|لوپوس|آلوپسی/)) return 'autoimmune';
-      return null;
-    }
-    function heMapScalpLabelToKey(label){
-      if (!label) return null;
-      var t = String(label);
-      if (t.indexOf('عفونت فعال پوست سر') > -1)               return 'active_infection';
-      if (t.indexOf('پسوریازیس') > -1)                         return 'psoriasis';
-      if (t.indexOf('عفونت قارچی') > -1 || t.indexOf('سبورئیک') > -1) return 'fungal_derm';
-      if (t.indexOf('فولیکولیت') > -1)                         return 'folliculitis';
-      if (t.indexOf('ریزش سکه‌ای') > -1 || t.indexOf('آلوپسی آره‌آتا') > -1) return 'areata';
-      if (t.indexOf('آلوپسی به همراه اسکار') > -1)            return 'scarring_alo';
-      if (t.indexOf('جای زخم') > -1 || t.indexOf('اسکار') > -1) return 'scar';
-      if (t.indexOf('هیچکدام') > -1)                           return null;
-      return null;
-    }
-    function heNormalizeGender(g){
-      var t = (g || '').toString().toLowerCase();
-      if (t === 'female' || t === 'زن')  return 'female';
-      return 'male';
-    }
-    function heRenderAllWarnings(opt){
-      opt = opt || {};
-      var systemicLabels = Array.isArray(opt.systemicLabels) ? opt.systemicLabels : [];
-      var scalpLabels    = Array.isArray(opt.scalpLabels)    ? opt.scalpLabels    : [];
-      var anchorSel      = opt.anchor || '#he-medical-warning-wrap';
-
-      var host = document.querySelector(anchorSel);
-      if (!host) return;
-      host.innerHTML = '';
-
-      var sysKeys = Array.from(new Set(systemicLabels.map(heMapLabelToWarningKey).filter(Boolean)));
-      sysKeys.forEach(function(k){
-        var div = document.createElement('div');
-        div.className = 'he-warn-card';
-        div.innerHTML = '<p>' + (HE_WARNINGS[k] || '') + '</p>';
-        host.appendChild(div);
-      });
-
-      var scalpKeys = Array.from(new Set(scalpLabels.map(heMapScalpLabelToKey).filter(Boolean)));
-      scalpKeys.forEach(function(k){
-        var div = document.createElement('div');
-        div.className = 'he-warn-card';
-        div.innerHTML = '<p>' + (HE_SCALP_WARNINGS[k] || '') + '</p>';
-        host.appendChild(div);
-      });
-
-      host.style.display = (host.children.length ? '' : 'none');
-    }
-    function heStageFromPatternValue(patternValue){
-      if (!patternValue) return null;
-      var m = String(patternValue).toLowerCase().match(/pattern[-_ ]?(\d+)/);
-      if (!m || !m[1]) return null;
-      var s = parseInt(m[1], 10);
-      if (isNaN(s)) return null;
-      if (s < 1) s = 1; if (s > 6) s = 6;
-      return s;
-    }
-    function heGraftsFromStage(gender, stage){
-      if (!stage) return null;
-      var key = heNormalizeGender(gender);
-      var tbl = HE_GRAFT_TABLE[key] || {};
-      return tbl[stage] || null;
-    }
-    function heGetSelectedPatternFromDOM(){
-      var el = document.querySelector('input[name="loss_pattern"]:checked');
-      return el ? el.value : null;
-    }
-
-API.step5(payloadContact).done(function(res){
-  if (!res || !res.success) {
-    const d = Utils.wpUnwrap(res);
-    toastr.error((d && d.message) || 'خطا در ذخیره اطلاعات تماس');
-    $btn.prop('disabled', false);
-    return;
-  }
-
-  UI.finalStepShowLoader();
-
-  const req = API.finalize(uid, answers);
-
-  UI.waitForAiOrTimeout(req, 10000).done(function(){
-    req.done(function(fin){
-      const d = Utils.wpUnwrap(fin);
-      if (!(fin && fin.success)) {
-        toastr.error((d && d.message) || 'خطا در نهایی‌سازی هوش مصنوعی');
+    UI.finalStepShowLoader();
+    API.step5(payloadContact).done(function(res){
+      if (!res || !res.success) {
+        const d = Utils.wpUnwrap(res);
+        toastr.error((d && d.message) || 'خطا در ذخیره اطلاعات تماس');
+        $btn.prop('disabled', false);
         return;
       }
 
-      // --- Parse result & basics ---
-      const u       = d.user || {};
-      const first   = (u.contact && u.contact.first_name ? u.contact.first_name : '').trim();
-      const last    = (u.contact && u.contact.last_name  ? u.contact.last_name  : '').trim();
-      const full    = (first || last) ? (first + (first&&last?' ':'') + last) : '—';
-      const ageVal  = u.age || (u.contact ? u.contact.age : '') || '—';
-      let   pattern = u.loss_pattern || u.pattern || heGetSelectedPatternFromDOM();
-      const gender  = (u.gender || (u.contact ? u.contact.gender : '') || 'male').toLowerCase();
-      const concern = (u.medical && u.medical.concern) ? u.medical.concern : '—';
+      // نمایش لودر نهایی (همون که داری)
+      UI.finalStepShowLoader();
 
-      // Stage & graft از جدول خودت
-      const stage   = heStageFromPatternValue(pattern);
-      const graftN  = heGraftsFromStage(gender, stage);
-      const graftByTable = graftN ? Number(graftN).toLocaleString('fa-IR') : '—';
+      // نهایی‌سازی با AI
+      const req = API.finalize(uid, answers);
 
-      // پزشکی (چیپ‌ها + کارت‌های هشدار)
-      const med = u.medical || {};
-      const splitFa = (str)=> (!str||typeof str!=='string')? [] : str.split(/[,،;\n]/g).map(s=>s.trim()).filter(Boolean);
-      const joinFa  = (arr)=> (Array.isArray(arr)&&arr.length)? arr.join('، ') : '—';
-      const drugsLabels = (med.has_meds === 'yes')
-        ? (splitFa(med.meds_list).length ? splitFa(med.meds_list) : ['مصرف دارو'])
-        : ['عدم مصرف دارو'];
-      const dermLabels  = splitFa(med.scalp_conditions);
-      const sysLabels   = splitFa(med.other_conditions);
-      const showMedical = (drugsLabels.length || dermLabels.length || sysLabels.length) > 0;
-      const warnHostId  = 'he-medical-warning-wrap-' + Date.now();
+      // تضمین حداقل ۱۰ ثانیه نمایش لودر، بعدش عمل کن
+      UI.waitForAiOrTimeout(req, 10000).done(function(){
+        req.done(function(fin){
+          const d = Utils.wpUnwrap(fin);
+          if (!(fin && fin.success)) {
+            toastr.error((d && d.message) || 'خطا در نهایی‌سازی هوش مصنوعی');
+            UI.finalStepHideLoader();
+            $btn.prop('disabled', false);
+            return;
+          }
 
-      // --- AI payload (اسکیما جدید) ---
-      let ai = {};
-      try { ai = JSON.parse(d.ai_result || '{}'); } catch(_){ ai = {}; }
+          // URL عمومی توکن‌دار که بک‌اند تو shec_finalize برمی‌گردونه
+          const publicUrl     = d.public_url || (d.data && d.data.public_url);
+          const publicExpires = d.public_expires || (d.data && d.data.public_expires);
 
-      // همیشه FIT نمایش بده؛ graft از جدول خودت
-      const methodTxt = 'FIT';
-      const duration  = 'دو جلسه هشت ساعته';
-      const logoUrl   = 'https://fakhraei.clinic/wp-content/uploads/2024/02/Group-1560-300x300.png.webp';
+          // ✅ مستقیم برو به صفحه‌ی نتیجه‌ی توکن‌دار
+          if (publicUrl) {
+            try { UI.finalStepHideLoader(); } catch(_) {}
+            // جلوگیری از رفتن به Step6
+            window.SHEC_ALLOW_STEP6 = false;
+            // ریدایرکت (در همان تب)
+            window.location.replace(publicUrl);
+            return;
+          }
 
-      // توضیح الگو (Norwood/Ludwig) — fallback سمت کلاینت
-      function mapFemaleLudwig(st){ if(!st) return null; if (st<=2) return 'Ludwig I'; if (st<=4) return 'Ludwig II'; return 'Ludwig III'; }
-      const fallbackPatternExplain = (function(){
-        if (!stage) return {label:'—', what_it_is:'', why_happens:'', note:'', fit_ok:true};
-        if (gender==='female') {
-          const label = mapFemaleLudwig(stage) || 'Ludwig';
-          const what  = 'الگوی کم‌پشتی منتشر در ناحیه مرکزی سر که با پیشرفت، وسعت بیشتری می‌گیرد.';
-          const why   = 'اغلب مرتبط با عوامل هورمونی و ژنتیکی؛ استرس و سبک زندگی هم اثر دارند.';
-          const note  = (label==='Ludwig I') ? 'در این مرحله معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود.' : '';
-          return {label, what_it_is:what, why_happens:why, note, fit_ok:true};
-        } else {
-          const label = 'Norwood ' + stage;
-          const what  = (stage>=5)
-            ? 'درگیری جلوی سر و ورتکس با باریک‌شدن پل میانی؛ برای بازگردانی خط مو و تراکم، برداشت گسترده لازم می‌شود.'
-            : 'عقب‌نشینی خط جلویی یا کم‌پشتی موضعی که با پیشرفت، نواحی بیشتری را درگیر می‌کند.';
-          const why   = 'معمولاً ژنتیکی و مرتبط با حساسیت فولیکول‌ها به آندروژن‌ها؛ استرس و سبک زندگی می‌تواند شدت را تغییر دهد.';
-          const note  = (stage===1) ? 'در این مرحله معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود.' : '';
-          return {label, what_it_is:what, why_happens:why, note, fit_ok:true};
-        }
-      })();
-      const patExplain = Object.assign({}, fallbackPatternExplain, (ai.pattern_explain||{}));
+          // ⛑ اگر به هر دلیل URL برنگشت، فقط در این حالت fallback:
+          console.warn('[SHEC] public_url نداشت؛ اجرای fallback render در همین صفحه.');
+          try { UI.finalStepHideLoader(); } catch(_) {}
+          if (typeof window.SHEC_renderFinal === 'function') {
+            window.SHEC_renderFinal(d); // رندر محلی نتیجه (بدون رفتن به استپ ۶)
+          } else {
+            toastr.warning('نتیجه آماده است اما لینک عمومی در دسترس نیست.');
+          }
+          $btn.prop('disabled', false);
 
-      // دغدغه‌ی همدلانه (ترجیح با AI؛ در صورت نبود → fallback)
-      const concernBox = (typeof ai.concern_box==='string' && ai.concern_box.trim())
-        ? ai.concern_box.trim()
-        : (function(){
-            const c = concern.toString();
-            if (/هزینه|قیمت/.test(c)) return 'می‌دانیم هزینه برایتان مهم است. در کلینیک فخرائی برآورد شفاف و منطقی ارائه می‌شود و کیفیت، اولویت ماست. می‌توانید پیش از تصمیم، مشاوره مالی دریافت کنید تا با خیال راحت برنامه‌ریزی کنید.';
-            if (/درد/.test(c))       return 'نگران درد نباشید؛ در طول عمل از بی‌حسی موضعی استفاده می‌شود و وضعیت شما مدام پایش می‌گردد تا تجربه‌ای بسیار قابل‌تحمل داشته باشید.';
-            if (/نقاهت/.test(c))    return 'دوران نقاهت کوتاه و قابل‌مدیریت است. با راهنمای مرحله‌به‌مرحله و مراقبت‌های ساده، به‌خوبی از این مرحله عبور می‌کنید.';
-            if (/طول|زمان/.test(c)) return 'رشد مو مرحله‌ای است؛ از ماه‌های اول تغییرات آغاز می‌شود و در ادامه تراکم طبیعی‌تر می‌شود. مسیر روشن است و کنار شما هستیم.';
-            return 'نگرانی شما کاملاً قابل درک است. با پاسخ شفاف و مسیر درمان مشخص، همراه شما هستیم تا با آرامش تصمیم بگیرید.';
-          })();
-
-      // === سؤالات پیگیری و پاسخ‌ها (نمایش لیست) ===
-      const followupsData = (((u.ai||{}).followups)||{});
-      const qaItems = Array.isArray(followupsData.qa) && followupsData.qa.length
-        ? followupsData.qa
-        : (Array.isArray(followupsData.questions)
-            ? followupsData.questions.map((q,i)=>({q, a: (answers[i]||'')}))
-            : []);
-      const faYesNo = (v)=> (/^(yes|true|بله)$/i.test(String(v))) ? 'بله' : (/^(no|false|خیر)$/i.test(String(v)) ? 'خیر' : (String(v||'').trim()||'—'));
-
-      // گرفتن پاراگراف AI برای هر آیتم (اول با ایندکس، سپس با match متن)
-      const aiFollowups = Array.isArray(ai.followups) ? ai.followups : [];
-      const norm = s => String(s||'').replace(/\s+/g,'').replace(/[‌\u200c]/g,'').trim();
-      const getTipFor = (qText, idx) => {
-        const byIndex = aiFollowups[idx] && aiFollowups[idx].ai_tip;
-        if (byIndex && String(byIndex).trim()) return String(byIndex).trim();
-        const t = norm(qText);
-        const hit = aiFollowups.find(x => norm(x.q||'') === t);
-        return (hit && hit.ai_tip && String(hit.ai_tip).trim()) ? String(hit.ai_tip).trim() : '';
-      };
-
-      // جمع‌بندی ~۱۲۰ کلمه‌ای (ترجیح با AI؛ در نبود، fallback)
-      const followupSummary = (typeof ai.followup_summary==='string' && ai.followup_summary.trim())
-        ? ai.followup_summary.trim()
-        : (function(){
-            const get = (re)=> {
-              const it = qaItems.find(x=> re.test(String(x.q||'')));
-              return it ? faYesNo(it.a) : '';
-            };
-            const smoking = get(/سیگار|قلیان/i);
-            const stress  = get(/استرس/i);
-            const sleep   = get(/خواب/i);
-            const worse   = get(/شدت|بدتر|افزایش/i);
-            const infect  = get(/عفونت|التهاب|پوست سر/i);
-
-            const s = [];
-            s.push('🤖 با توجه به پاسخ‌هایی که دادید، یک برنامه‌ی عملی برای آمادگی قبل از کاشت پیشنهاد می‌کنیم. ');
-            if (smoking==='بله') s.push('بهتر است از ۱۰ روز پیش از کاشت تا یک هفته بعد، دخانیات را کنار بگذارید تا خون‌رسانی بهتر و بقای گرافت‌ها بیشتر شود. ');
-            if (sleep==='خیر')  s.push('کم‌خوابی را با تنظیم ساعت خواب و کاهش کافئین عصر اصلاح کنید؛ خواب کافی التهاب را پایین می‌آورد و ترمیم را سریع‌تر می‌کند. ');
-            if (stress==='بله') s.push('چند دقیقه تمرین تنفس یا پیاده‌روی روزانه اضافه کنید؛ همین عادت‌ها اثر ملموسی بر ریزش ناشی از استرس دارد. ');
-            if (worse==='بله')  s.push('با توجه به افزایش ریزش، بهتر است تصمیم درمانی را به تعویق نیندازید و درمان نگه‌دارنده را هم‌زمان آغاز کنید. ');
-            if (infect==='بله') s.push('در صورت التهاب/عفونت پوست سر، ابتدا درمان کامل انجام می‌شود تا شانس بقای گرافت‌ها بالا برود. ');
-            s.push('در مجموع مسیر درمان شما روشن است و تیم فخرائی کنار شماست.');
-            const txt = s.join('');
-            return (txt.length < 220) ? (txt + ' رعایت بهداشت پوست سر و پیروی از دستورهای مراقبتی، کیفیت ناحیه گیرنده را بهتر می‌کند و روند ترمیم را سرعت می‌دهد.') : txt;
-          })();
-
-      // توضیحات اضافه (extra_analysis) یا سازگاری با analysis قدیمی
-      const extraText = (ai.extra_analysis && ai.extra_analysis.trim())
-        ? ai.extra_analysis.trim()
-        : ((ai.analysis && ai.analysis.trim()) ? ai.analysis.trim() : '');
-
-        const qaHtml = `
-          <div class="ai-section-title" style="margin-top:18px;">نتیجه سوالات ایجاد شده هوشمند</div>
-          <ol class="ai-qa">
-            ${qaItems.map((item, i)=>{
-              const tip = getTipFor(item.q, i);          // از کدت داریش
-              const ans = faYesNo(item.a);               
-              const ansClass = /بله/.test(ans) ? 'ans-yes' : (/خیر/.test(ans) ? 'ans-no' : '');
-              return `
-                <li class="ai-qa-item">
-                  <div class="ai-qa-head">
-                    <div class="num">${i+1}</div>
-                    <div class="ai-qa-q">❓ ${(item.q||'').trim()}</div>
-                  </div>
-                  <div class="ai-qa-a">
-                    <span class="label">پاسخ:</span>
-                    <span class="ans-pill ${ansClass}">${ans}</span>
-                  </div>
-                  ${tip ? `
-                    <div class="ai-qa-tip" style="display:flex;gap:6px;align-items:flex-start;text-align:justify">
-                      <span class="bot">🤖</span>
-                      <div class="text">${tip}</div>
-                    </div>` : ``}
-                </li>`;
-            }).join('')}
-          </ol>
-        `;
-
-      // === Render ===
-      $('#ai-result-box').html(`
-        <div class="ai-result-container">
-          <div class="ai-hero">
-            <div class="ai-logo">${logoUrl ? `<img src="${logoUrl}" alt="Fakhraei">` : ''}</div>
-            <div class="ai-title">برنامه اختصاصی کاشت موی شما آماده است!</div>
-            <div class="ai-check">✓</div>
-            <div class="ai-sub">از اعتماد شما سپاسگزاریم</div>
-          </div>
-
-          <div class="ai-section-title">اطلاعات شخصی شما</div>
-          <div class="ai-chip-row">
-            <div class="ai-chip">
-              <span class="ai-chip-label">نام و نام خانوادگی</span>
-              <div class="ai-chip-value">${full}</div>
-            </div>
-            <div class="ai-chip">
-              <span class="ai-chip-label">الگوی ریزش مو</span>
-              <div class="ai-chip-value">${pattern ?? '—'}</div>
-            </div>
-            <div class="ai-chip">
-              <span class="ai-chip-label">بازه سنی</span>
-              <div class="ai-chip-value">${ageVal}</div>
-            </div>
-          </div>
-
-          <div class="ai-note" style="text-align:justify">
-            🤖 <strong>${patExplain.label || '—'}</strong> — ${patExplain.what_it_is || ''}<br>
-            ${patExplain.why_happens ? (patExplain.why_happens + '<br>') : ''}
-            ${patExplain.fit_ok ? 'این الگو با روش FIT/FUE در کلینیک فخرائی قابل درمان است.' : ''} ${patExplain.note ? ('<br>'+patExplain.note) : ''}
-          </div>
-
-          <div class="ai-section-title" style="margin-top:18px;">مهم‌ترین دغدغهٔ شما</div>
-          <div class="ai-note" style="margin-bottom:8px">${concern}</div>
-          <div class="ai-note" style="text-align:justify">🤖 ${concernBox}</div>
-
-          <hr class="ai-divider"/>
-
-          <div class="ai-stats">
-            <div class="ai-stat">
-              <div class="ai-stat-label">مدت زمان تقریبی</div>
-              <div class="ai-stat-value">${duration}</div>
-            </div>
-            <div class="ai-stat ai-stat--accent">
-              <div class="ai-stat-label">تکنیک پیشنهادی</div>
-              <div class="ai-stat-value">${methodTxt}</div>
-            </div>
-            <div class="ai-stat">
-              <div class="ai-stat-label">تعداد تار موی پیشنهادی</div>
-              <div class="ai-stat-value">${graftByTable}</div>
-            </div>
-          </div>
-
-          ${showMedical ? `
-            <div class="ai-section-title" style="margin-top:22px;">وضعیت پزشکی ثبت‌شده</div>
-            <div class="ai-stats">
-              <div class="ai-stat">
-                <div class="ai-stat-label">دارو مورد استفاده</div>
-                <div class="ai-stat-value">${joinFa(drugsLabels)}</div>
-              </div>
-              <div class="ai-stat">
-                <div class="ai-stat-label">بیماری پوستی</div>
-                <div class="ai-stat-value">${joinFa(dermLabels)}</div>
-              </div>
-              <div class="ai-stat">
-                <div class="ai-stat-label">بیماری زمینه‌ای</div>
-                <div class="ai-stat-value">${joinFa(sysLabels)}</div>
-              </div>
-            </div>
-            <div id="${warnHostId}"></div>
-          ` : ''}
-
-           ${qaHtml}
-
-          <div class="ai-section-title" style="margin-top:18px;">جمع‌بندی پاسخ‌ها و توصیه‌های اختصاصی</div>
-          <div class="ai-note" style="text-align:justify">🤖${followupSummary}</div>
-
-
-
-        </div>
-      `);
-
-      // هشدارهای پزشکی
-      heRenderAllWarnings({
-        systemicLabels: sysLabels,
-        scalpLabels: dermLabels,
-        anchor: '#' + warnHostId
+        }).fail(function(){
+          UI.finalStepHideLoader();
+          toastr.error('خطای ارتباط در نهایی‌سازی');
+          $btn.prop('disabled', false);
+        });
+      }).fail(function(){
+        UI.finalStepHideLoader();
+        toastr.error('خطا در ارتباط با سرور (Final)');
+        $btn.prop('disabled', false);
       });
 
-      UI.goToStep(6);
     }).fail(function(){
-      toastr.error('خطای ارتباط در نهایی‌سازی');
-    }).always(function(){
-      UI.finalStepHideLoader();
+      toastr.error('خطا در ارتباط با سرور');
       $btn.prop('disabled', false);
     });
-  }).fail(function(){
-    toastr.error('خطا در ارتباط با سرور');
-    $btn.prop('disabled', false);
+
+
   });
 
-}); // end step5 save
-
-  }); // end submit #form-step-5
-
-  // PDF
+  /* =========================
+   * PDF (optional)
+   * ========================= */
   async function shecBuildPdfA4(selector) {
     const root = document.querySelector(selector);
     if (!root) { console.error('[PDF] root not found'); return; }
@@ -1174,26 +1215,32 @@ API.step5(payloadContact).done(function(res){
     pdf.save('fakhraei-result.pdf');
   }
 
-  // کلیک دانلود
   $(document).on('click', '#download-pdf', function(e){
     e.preventDefault();
     shecBuildPdfA4('#proposal-pdf-root');
   });
 
-  // Prev button
+  // Prev & Reset
   $('.btn-prev').on('click', function(){
     const current = parseInt(LS.get('currentStep') || 1);
     UI.goToStep(Math.max(1, current-1));
   });
-
-  // Reset
   $(document).on('click', '#reset-form', function(){
     if (confirm('آیا مطمئن هستید که می‌خواهید فرم را از ابتدا شروع کنید؟')) {
-      LS.clear(); window.location.reload();
+      LS.clear(); 
+
+      // 1) اولویت با data-reset-href از مارکاپ
+      var href =this.getAttribute('data-reset-href') ||(window.shec_ajax && shec_ajax.calc_url) ||'/hair-graft-calculator/';
+      // 2) بعد calc_url که از سرور لوکالایز شده (هیچ وقت localhost اشتباه نمی‌دهد)
+      if (!href && window.shec_ajax && shec_ajax.calc_url) href = shec_ajax.calc_url;
+      // 3) فال‌بک امن
+      if (!href) href = '/hair-graft-calculator/';
+      
+      window.location.assign(href);
     }
   });
 
-  // هنگام لود
+  // initial
   (function preloadPatternImages(){
     for (let i=1;i<=6;i++){ new Image().src = `${shec_ajax.img_path}w${i}.png`; }
     const savedGender = LS.get('gender') || 'male';

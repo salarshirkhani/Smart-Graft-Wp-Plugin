@@ -1,51 +1,9 @@
 <?php 
-
-// 3) لود فایل‌های استایل و اسکریپت با nonce برای امنیت
-add_action( 'wp_enqueue_scripts', 'shec_enqueue_assets' );
-function shec_enqueue_assets() {
-    wp_enqueue_script('jquery');
-
-    // toastr
-    wp_enqueue_style( 'toastr-css', 'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css' );
-    wp_enqueue_script( 'toastr-js', 'https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js', [], null, true );
-
-    // jsPDF برای دانلود PDF
-    wp_enqueue_script(
-        'html2canvas',
-        'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-        array(),
-        '1.4.1',
-        true
-    );
-
-    wp_enqueue_script(
-        'jspdf',
-        'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-        array(),
-        '2.5.1',
-        true
-    );
-
-    wp_enqueue_script(
-        'dotlottie',
-        'https://unpkg.com/@lottiefiles/dotlottie-wc/dist/dotlottie-wc.umd.js',
-        [],
-        null,
-        true
-    );
-
-    // استایل و اسکریپت خود افزونه
-    wp_enqueue_style( 'shec-style', SHEC_URL . 'public/assets/scss/style.css' );
-    wp_enqueue_script( 'shec-form-js', SHEC_URL . 'public/assets/js/form.js', ['jquery','toastr-js','jspdf','html2canvas','dotlottie'], '1.0.1', true );
-
-    // فقط یک‌بار localize
-    wp_localize_script('shec-form-js', 'shec_ajax', [
-        'url'      => admin_url('admin-ajax.php'),
-        'nonce'    => wp_create_nonce('shec_nonce'),
-        'img_path' => plugins_url('../public/assets/img/', __FILE__),
-        'max_upload_mb' => (int) floor(wp_max_upload_size()/1048576),
-    ]);
+if (!function_exists('shec_links_table')) {
+  function shec_links_table(){ global $wpdb; return $wpdb->prefix.'shec_links'; }
 }
+
+
 
 if ( ! function_exists('shec_is_localhost') ) {
     function shec_is_localhost() {
@@ -134,7 +92,7 @@ if ( ! function_exists('shec_normalize_mobile') ) {
 
 
 function shec_remove_theme_styles_and_scripts() {
-    if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_calculator')) {
+    if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_calculator','smart_hair_result')) {
         // حذف استایل‌ها
         wp_dequeue_style('wp-block-library'); // حذف استایل بلوک‌های وردپرس
         wp_dequeue_style('wp-block-navigation'); // حذف استایل ناوبری
@@ -146,6 +104,49 @@ add_action('wp_enqueue_scripts', 'shec_remove_theme_styles_and_scripts', 100) ;
 
 function hide_header_footer_on_shec_page() {
     if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_calculator')) {
+        echo '<style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            main{
+                margin-top:0px !important ;
+                padding-left:0px !important;
+                padding-right:0px !important;
+                padding-top:0px !important ;
+            }
+            h1, h2, h3, h4, h5, h6 {
+                display: none;  
+            }
+            .site-header, .site-footer, .wp-admin-bar, .header, .footer ,.entry-title {
+                display: none;
+            }
+            header , footer{
+                display: none !important;
+            }   
+            #content {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+                height: 100vh; 
+            }
+            #progress-wrapper{
+                 width: 100vw !important;
+                 max-width:100% !important;
+            }
+            :root :where(.is-layout-constrained) > * {
+                margin-block-start: -0.8rem;
+            }
+            .wp-block-group{
+                padding-top:-10px !important;
+            }
+                :root :where(.is-layout-constrained) > :last-child {
+                margin-block-end: 0;
+                padding-top: 0px !important;
+            }
+        </style>';
+    }
+
+    if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_result')) {
         echo '<style>
             body {
                 margin: 0;
@@ -324,4 +325,3 @@ add_action('admin_enqueue_scripts', function ($hook) {
     $css_url = plugin_dir_url( dirname(__FILE__) ) . 'includes/admin/admin.css';
     wp_enqueue_style('shec-admin', $css_url, [], '1.0.0');
 });
-

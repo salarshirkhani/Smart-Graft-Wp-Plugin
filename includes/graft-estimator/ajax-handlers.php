@@ -1,7 +1,7 @@
 <?php
 /**
- * Smart Hair Graft Calculator — AJAX Handlers
- * Version: 1.2.4 (guarded helpers to avoid redeclare)
+ * Smart Hair Graft Calculator — AJAX Handlers (Tokenized Result)
+ * Version: 2.0.0
  */
 if (!defined('ABSPATH')) exit;
 
@@ -16,14 +16,13 @@ if (!function_exists('shec_check_nonce_or_bypass')) {
   function shec_check_nonce_or_bypass() {
     $host = $_SERVER['HTTP_HOST'] ?? '';
     if ($host==='localhost' || $host==='127.0.0.1') return; // local dev
-    $nonce = $_POST['_nonce'] ?? '';
+    $nonce = $_POST['_nonce'] ?? $_POST['_wpnonce'] ?? '';
     if (!wp_verify_nonce($nonce, 'shec_nonce')) {
       wp_send_json_error(['message'=>'Invalid nonce'], 403);
     }
   }
 }
 
-/** تمام دسترسی‌ها با wp_user_id (شناسه‌ی یکتای فرم) */
 if (!function_exists('shec_get_data')) {
   function shec_get_data($uid){
     global $wpdb;
@@ -45,7 +44,6 @@ if (!function_exists('shec_update_data')) {
     );
   }
 }
-/** تولید شناسه‌ی یکتا مثل قبل: max(wp_user_id)+1 */
 if (!function_exists('shec_generate_form_uid')) {
   function shec_generate_form_uid(){
     global $wpdb;
@@ -102,7 +100,126 @@ if (!function_exists('shec_set_rate_limit_block')) {
   }
 }
 
-/* ===== Dynamic prompts (guarded) ===== */
+/* ---------------------------------
+ * Token helpers (guarded)
+ * --------------------------------- */
+if (!function_exists('shec_links_table')) {
+  function shec_links_table(){ global $wpdb; return $wpdb->prefix.'shec_links'; }
+}
+if (!function_exists('shec_generate_token')) {
+  function shec_generate_token($len = 9) {
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'; // base58-like
+    $max = strlen($alphabet) - 1;
+    $tok = '';
+    for ($i=0;$i<$len;$i++) { $tok .= $alphabet[random_int(0, $max)]; }
+    return $tok;
+  }
+}
+if (!function_exists('shec_public_page_url')) {
+  function shec_public_page_url($token) {
+    $page = get_page_by_path('hair-result');
+    $base = $page ? get_permalink($page) : home_url('/');
+    $sep  = (strpos($base,'?')===false) ? '?' : '&';
+    return $base . $sep . 't=' . rawurlencode($token);
+  }
+}
+if (!function_exists('shec_public_link_issue')) {
+  function shec_public_link_issue($uid, $days = 180) {
+    global $wpdb;
+    $uid = (int)$uid;
+    $data = shec_get_data($uid);
+    if (empty($data)) return ['url'=>'', 'token'=>'', 'expires'=>0];
+
+    $links_table = shec_links_table();
+    $expires_ts  = time() + (int)$days * DAY_IN_SECONDS;
+    $expires_dt  = gmdate('Y-m-d H:i:s', $expires_ts);
+
+    // 1) اگر قبلاً توکن plaintext در data داریم و منقضی نشده، همونو استفاده کن و مطمئن شو در links هم هست
+    if (!empty($data['public_token']['token'])) {
+      $tok = (string)$data['public_token']['token'];
+      $exp = (int)($data['public_token']['expires'] ?? 0);
+
+      // اگر منقضی شده، تاریخ را تمدید کن
+      if ($exp <= time()) {
+        $exp = $expires_ts;
+        $data['public_token']['expires'] = $exp;
+        shec_update_data($uid, $data);
+      }
+
+      // اطمینان از وجود رکورد در links (upsert سبک)
+      $hash = hash('sha256', $tok);
+      $row  = $wpdb->get_row($wpdb->prepare(
+        "SELECT id FROM {$links_table} WHERE token_hash=%s LIMIT 1",
+        $hash
+      ), ARRAY_A);
+
+      if (!$row) {
+        // همه لینک‌های قبلی کاربر را غیرفعال کن (اختیاری ولی تمیزتر)
+        $wpdb->update($links_table, ['is_active'=>0], ['wp_user_id'=>$uid]);
+
+        $wpdb->insert($links_table, [
+          'wp_user_id' => $uid,
+          'token_hash' => $hash,
+          'created'    => current_time('mysql', 1), // GMT
+          'expires'    => $expires_dt,
+          'is_active'  => 1,
+        ], ['%d','%s','%s','%s','%d']);
+      } else {
+        // تمدید expiry و فعال‌سازی
+        $wpdb->update($links_table, [
+          'expires'   => $expires_dt,
+          'is_active' => 1,
+        ], [
+          'token_hash'=> $hash
+        ], ['%s','%d'], ['%s']);
+      }
+
+      set_transient('shec_tok_'.$tok, $uid, (int)$days*DAY_IN_SECONDS);
+      return ['url'=>shec_public_page_url($tok), 'token'=>$tok, 'expires'=>$exp];
+    }
+
+    // 2) تولید توکن جدید و ذخیره در هر دو جا (data + links)
+    //    احتیاط: احتمال خیلی کمِ تکرار → تلاش چندباره
+    $tok = '';
+    for ($i=0; $i<5; $i++) {
+      $tok = shec_generate_token(9);
+      $hash = hash('sha256', $tok);
+      $exists = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$links_table} WHERE token_hash=%s",
+        $hash
+      ));
+      if (!$exists) break;
+      $tok = '';
+    }
+    if ($tok === '') {
+      return ['url'=>'', 'token'=>'', 'expires'=>0]; // خیلی نادر
+    }
+
+    // همه لینک‌های قبلی کاربر را غیرفعال کن (اختیاری)
+    $wpdb->update($links_table, ['is_active'=>0], ['wp_user_id'=>$uid]);
+
+    $wpdb->insert($links_table, [
+      'wp_user_id' => $uid,
+      'token_hash' => $hash,
+      'created'    => current_time('mysql', 1), // GMT
+      'expires'    => $expires_dt,
+      'is_active'  => 1,
+    ], ['%d','%s','%s','%s','%d']);
+
+    // نگه‌داری plaintext token در data جهت reuse
+    $data['public_token'] = ['token'=>$tok, 'created'=>time(), 'expires'=>$expires_ts];
+    shec_update_data($uid, $data);
+
+    set_transient('shec_tok_'.$tok, $uid, (int)$days*DAY_IN_SECONDS);
+
+    return ['url'=>shec_public_page_url($tok), 'token'=>$tok, 'expires'=>$expires_ts];
+  }
+}
+
+
+/* ---------------------------------
+ * Dynamic prompts (guarded)
+ * --------------------------------- */
 if (!function_exists('shec_prompt_questions_default')) {
   function shec_prompt_questions_default() {
     return <<<EOT
@@ -150,59 +267,35 @@ if (!function_exists('shec_prompt_final_default')) {
     {"q":"<سؤال 4>","a":"بله|خیر","tip":"<…>"}
   ],
   "pre_op": ["<۰ تا ۳ توصیه‌ی کوتاه پیش از کاشت کاملاً متناسب با پاسخ‌ها>"],
-  "post_op":["<۰ تا ۳ توصیه‌ی کوتاه پس از کاشت کاملاً متناسب با پاسخ‌ها>"]
+  "post_op":["<۰ تا ۳ توصیه‌ی کوتاه پس از کاشت کاملاً متناسب با پاسخ‌ها>"],
+  "followup_summary":"<خلاصه‌ی همدلانه ~۱۲۰ کلمه بر اساس پاسخ‌ها>"
 }
 
 # قواعد مهم
-- تمام پاسخ‌ها فارسی و محاوره‌ای-مودبانه باشد؛ لحن حتماً همدلانه و مطمئن‌کننده.
-- method همیشه "FIT" باشد. (کلینیک فقط FUE/FIT انجام می‌دهد؛ از FUT یا روش‌های دیگر نام نبر.)
-- graft_count را 0 بگذار؛ این عدد را سیستم محاسبه می‌کند.
-- analysis: 100 تا 160 کلمه، دوستانه، بدون اصطلاحات پیچیده؛ حتماً شامل:
-  1) اشاره‌ی ساده به علت احتمالی ریزش (ژنتیک/هورمونی/استرس…)
-  2) اطمینان‌بخشی درباره‌ی نتیجه‌ی طبیعی و تراکم مناسب در کلینیک فخرائی
-  3) 2–3 پیشنهاد ساده تا زمان کاشت (مثال: شامپوی ملایم، پرهیز از سیگار/قلیان، خواب کافی)
-  4) جمع‌بندی روشن که مسیر درمان مشخص و قابل پیگیری است
-- concern_box: دقیقاً به دغدغه‌ی ثبت‌شده‌ی کاربر واکنش نشان بده و همدلی کن. نمونه‌ی برخورد:
-  * «هزینه»: اطمینان بده برآورد شفاف و برنامه‌ی مالی منطقی داریم و کیفیت اولویت است.
-  * «درد»: بی‌حسی موضعی و پایش مداوم؛ تجربه‌ی درد ناچیز.
-  * «نقاهت»: کوتاه و قابل‌مدیریت با راهنمای مرحله‌به‌مرحله.
-  * «طول کشیدن نتیجه»: رشد مو مرحله‌ای است و از ماه‌های اول تغییرات شروع می‌شود.
-  * اگر دغدغه‌ی دیگری بود، باز هم همدلانه، کوتاه و مشخص پاسخ بده.
-- pattern_explain:
-  * اگر gender=male → از loss_pattern مثل "pattern-5" به Norwood 5 تبدیل کن؛ بازه را 1..6 در نظر بگیر.
-  * اگر gender=female → "pattern-x" را تقریبی به Ludwig I (x∈{1,2})، Ludwig II (x∈{3,4})، Ludwig III (x∈{5,6}) نگاشت کن.
-  * اگر Norwood 1 یا Ludwig I بود: در note بگو «معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود».
-  * fit_ok برای تمام موارد بجز Norwood 1/Ludwig I true باشد؛ برای آن‌ها true بماند ولی در note توضیح احتیاطی بده.
-- followups:
-  * ورودی شامل followups با جفت‌های q/a است. همان سؤال‌ها را تکرار کن، مقدار a را به «بله/خیر» نگاشت کن (نه yes/no).
-  * برای هر مورد یک "tip" کاملاً مرتبط و کوتاه بنویس (مثلاً برای سیگار: پرهیز ۱۰ روز قبل و ۷ روز بعد؛ برای استرس/خواب: روتین آرام‌سازی و خواب منظم؛ برای التهاب/عفونت: ابتدا درمان سپس کاشت؛ برای بدترشدن روند: درمان نگه‌دارنده قبل از کاشت).
-- pre_op و post_op:
-  * عمومی ننویس؛ ۰ تا ۳ توصیه‌ی خیلی کوتاه، دقیقاً مبتنی بر پاسخ‌های همان کاربر (اگر سیگار=بله → پرهیز دخانیات؛ اگر خواب ناکافی=بله → بهداشت خواب؛ اگر التهاب=بله → اول کنترل التهاب).
-- از جملات کلی مثل «برای نتیجه دقیق‌تر حضوری بیا» خودداری کن؛ فقط در یک جملهٔ پایانیِ اختیاری و مودبانه می‌توانی پیشنهاد مشاوره بدهی.
-- هیچ متن اضافه، توضیح، Markdown یا کدبلاک نده. فقط JSON شیء واحد.
+- همه‌چیز فارسی محاوره‌ـمودبانه؛ لحن همدلانه و مطمئن‌کننده.
+- method همیشه "FIT" باشد؛ از FUT نام نبر.
+- graft_count را 0 بگذار (سیستم محاسبه می‌کند).
+- analysis حتماً شامل: علت احتمالی ریزش + اطمینان‌بخشی نتیجه طبیعی در کلینیک فخرائی + 2–3 توصیه ساده تا زمان کاشت + جمع‌بندی روشن مسیر درمان.
+- concern_box متناسب با دغدغه ثبت‌شده؛ نمونه‌ها: هزینه/درد/نقاهت/طول‌کشیدن نتیجه/… .
+- pattern_explain: male→Norwood(stage from pattern-1..6)، female→Ludwig I/II/III (mapping 1–2/3–4/5–6).
+- followups: برای هر q/a، a را «بله/خیر» کن و tip عملی و دقیق بده (سیگار/خواب/استرس/عفونت/بدترشدن…).
+- pre_op/post_op عمومی ننویس؛ دقیقاً متناسب با پاسخ‌های همین کاربر باشد.
+- هیچ متن اضافه/Markdown/کدبلاک نده؛ فقط JSON شیء واحد.
 
 # ورودی
 اطلاعات بیمار (JSON):
 {{PACK_JSON}}
 
 # فقط JSON
-
 EOT;
   }
 }
-
-if (!function_exists('shec_get_prompt_questions')) {
-  function shec_get_prompt_questions(){ $p=get_option('shec_prompt_questions',''); return $p ?: shec_prompt_questions_default(); }
-}
-if (!function_exists('shec_get_prompt_final')) {
-  function shec_get_prompt_final(){ $p=get_option('shec_prompt_final',''); return $p ?: shec_prompt_final_default(); }
-}
+if (!function_exists('shec_get_prompt_questions')) { function shec_get_prompt_questions(){ $p=get_option('shec_prompt_questions',''); return $p ?: shec_prompt_questions_default(); } }
+if (!function_exists('shec_get_prompt_final'))     { function shec_get_prompt_final(){ $p=get_option('shec_prompt_final','');     return $p ?: shec_prompt_final_default(); } }
 if (!function_exists('shec_render_template')) {
   function shec_render_template($tpl, array $vars){
     foreach ($vars as $k=>$v) {
-      if (is_array($v) || is_object($v)) {
-        $v = wp_json_encode($v, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
-      }
+      if (is_array($v) || is_object($v)) $v = wp_json_encode($v, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
       $tpl = str_replace('{{'.$k.'}}', (string)$v, $tpl);
     }
     return $tpl;
@@ -238,7 +331,6 @@ if (!function_exists('shec_handle_step1')) {
       wp_send_json_error(['message'=>'شماره موبایل معتبر نیست. مثال: 09xxxxxxxxx']);
     }
 
-    // ✅ شناسه یکتای فرم (max+1)
     $form_uid = shec_generate_form_uid();
 
     $data = [
@@ -264,7 +356,7 @@ add_action('wp_ajax_shec_step1','shec_handle_step1');
 add_action('wp_ajax_nopriv_shec_step1','shec_handle_step1');
 
 /* ---------------------------------
- * STEP 2  (UPDATE)
+ * STEP 2  (UPDATE loss pattern)
  * --------------------------------- */
 if (!function_exists('shec_handle_step2')) {
   function shec_handle_step2(){
@@ -337,7 +429,7 @@ if (!function_exists('shec_handle_step4')) {
     if (!$data) wp_send_json_error(['message'=>'شناسه فرم معتبر نیست.']);
 
     $medical = array_map('sanitize_text_field', $_POST);
-    unset($medical['_nonce'],$medical['action'],$medical['user_id']);
+    unset($medical['_nonce'],$medical['_wpnonce'],$medical['action'],$medical['user_id']);
     $data['medical'] = $medical;
 
     shec_update_data($uid, $data);
@@ -348,7 +440,7 @@ add_action('wp_ajax_shec_step4','shec_handle_step4');
 add_action('wp_ajax_nopriv_shec_step4','shec_handle_step4');
 
 /* ---------------------------------
- * STEP 5 (contact)
+ * STEP 5 (contact) — فقط ذخیره تماس
  * --------------------------------- */
 if (!function_exists('shec_handle_step5')) {
   function shec_handle_step5(){
@@ -373,18 +465,13 @@ if (!function_exists('shec_handle_step5')) {
     $data['contact'] = array_merge($data['contact'], compact('first_name','last_name','state','city','social'));
     shec_update_data($uid, $data);
 
-    wp_send_json_success([
-      'user'=>$data,
-      'ai_result'=>wp_json_encode(['method'=>'FIT','graft_count'=>2800,'analysis'=>'نمونهٔ آزمایشی'], JSON_UNESCAPED_UNICODE)
-    ]);
+    // همینجا AI نمی‌زنیم؛ finalize این کار را می‌کند
+    wp_send_json_success(['user'=>$data]);
   }
 }
 add_action('wp_ajax_shec_step5','shec_handle_step5');
 add_action('wp_ajax_nopriv_shec_step5','shec_handle_step5');
 
-/* ---------------------------------
- * AI QUESTIONS (store into DB)
- * --------------------------------- */
 /* ---------------------------------
  * AI QUESTIONS (store into DB) — robust 4-questions
  * --------------------------------- */
@@ -398,7 +485,6 @@ if (!function_exists('shec_ai_questions')) {
     $data = shec_get_data($uid);
     if (!$data) wp_send_json_error(['message'=>'داده‌ای برای این کاربر پیدا نشد']);
 
-    // خلاصهٔ پایدار برای کش
     $summary = [
       'gender'        => $data['gender'] ?? null,
       'age'           => $data['age'] ?? null,
@@ -409,7 +495,6 @@ if (!function_exists('shec_ai_questions')) {
     ];
     $fp = sha1( wp_json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) );
 
-    // کش اگر ۴ تا معتبر و تازه
     $prev = $data['ai']['followups'] ?? [];
     if (!empty($prev['questions']) && count((array)$prev['questions']) === 4
         && ($prev['fp'] ?? '') === $fp
@@ -421,7 +506,6 @@ if (!function_exists('shec_ai_questions')) {
       ]);
     }
 
-    // fallback ثابت
     $fallback = [
       'آیا در خانواده‌تان سابقهٔ ریزش مو وجود دارد؟',
       'آیا طی ۱۲ ماه گذشته شدت ریزش موی شما بیشتر شده است؟',
@@ -432,17 +516,13 @@ if (!function_exists('shec_ai_questions')) {
     $questions = null;
     $debug = ['marker'=>'aiq_dyn4','source'=>'fallback','error'=>null,'retry'=>0];
 
-    // پرامپت (اول از تنظیمات، بعد پیش‌فرض)
     $prompt_template = shec_get_prompt_questions();
     $summary_json    = wp_json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
-    if (strpos($prompt_template, '{{SUMMARY_JSON}}') !== false) {
-      $prompt_user = str_replace('{{SUMMARY_JSON}}', $summary_json, $prompt_template);
-    } else {
-      $prompt_user = $prompt_template . "\n\nخلاصهٔ بیمار (JSON):\n" . $summary_json;
-    }
+    $prompt_user     = (strpos($prompt_template, '{{SUMMARY_JSON}}') !== false)
+      ? str_replace('{{SUMMARY_JSON}}', $summary_json, $prompt_template)
+      : ($prompt_template . "\n\nخلاصهٔ بیمار (JSON):\n" . $summary_json);
 
     if (shec_openai_api_key()) {
-      // تماس ۱ با system سخت‌گیر و response_format=json_object (تو shec_openai_chat هم ست می‌کنی)
       $resp = shec_openai_chat(
         [
           ['role'=>'system','content'=>'فقط یک شیء JSON معتبر برگردان. دقیقا با کلید "questions" و آرایه‌ای از ۴ رشتهٔ کوتاه فارسی. هیچ متن اضافه‌ای ننویس.'],
@@ -454,19 +534,14 @@ if (!function_exists('shec_ai_questions')) {
       if ($resp['ok']) {
         $raw    = (string)($resp['content'] ?? '');
         $parsed = shec_json_force_decode_object($raw);
-        $q      = shec_extract_questions_from_json($parsed);   // ← کلیدهای جایگزین و آرایهٔ آبجکت/رشته را هندل می‌کند
-        $q      = shec_ensure_four_questions($q, $fallback);   // ← همیشه ۴تا می‌کند (زیاد=برش، کم=پر)
-        if (count($q) === 4) {
-          $questions = $q;
-          $debug['source'] = 'openai';
-        } else {
-          $debug['error'] = 'normalize-fail-after-openai';
-        }
+        $q      = shec_extract_questions_from_json($parsed);
+        $q      = shec_ensure_four_questions($q, $fallback);
+        if (count($q) === 4) { $questions = $q; $debug['source'] = 'openai'; }
+        else { $debug['error'] = 'normalize-fail-after-openai'; }
       } else {
         $debug['error'] = $resp['error'] ?? 'openai call failed';
       }
 
-      // اگر بار اول به ۴ نرسید → یک ریتری با دستور کوتاه‌تر و صریح‌تر
       if (!$questions || count($questions)!==4) {
         $debug['retry'] = 1;
         $resp2 = shec_openai_chat(
@@ -491,7 +566,6 @@ if (!function_exists('shec_ai_questions')) {
       $debug['error'] = 'no api key';
     }
 
-    // اگر هنوز ۴تا نشد → باگ نکن، fallback بده ولی لاگِ دلیل حفظ بشه
     if (!$questions || count($questions)!==4) {
       $questions = shec_ensure_four_questions((array)$questions, $fallback);
       $debug['source'] = 'openai+repair';
@@ -500,7 +574,6 @@ if (!function_exists('shec_ai_questions')) {
       }
     }
 
-    // ذخیره در DB
     if (!isset($data['ai'])) $data['ai'] = [];
     $data['ai']['followups'] = [
       'questions'    => array_values($questions),
@@ -514,82 +587,58 @@ if (!function_exists('shec_ai_questions')) {
   }
 }
 
-/* ===== Helpers (paste once) ===== */
-
-/** JSON را «هر طور شده» به شیء تبدیل می‌کند (کدبلاک/متن اضافه را می‌بُرد) */
+/* ===== JSON extract helpers ===== */
 if (!function_exists('shec_json_force_decode_object')) {
   function shec_json_force_decode_object($text) {
     $text = trim((string)$text);
-    $text = preg_replace('~^```(?:json)?\s*|\s*```$~u', '', $text); // حذف ```json
+    $text = preg_replace('~^```(?:json)?\s*|\s*```$~u', '', $text);
     $j = json_decode($text, true);
     if (is_array($j)) return $j;
     if (preg_match('~\{(?:[^{}]|(?R))*\}~su', $text, $m)) {
       $j = json_decode($m[0], true);
       if (is_array($j)) return $j;
     }
-    // احتمالاً مدل با \n تفکیک کرده؛ برگردانیم تا extractor هندل کند
     return ['__raw'=>$text];
   }
 }
-
-/** از ساختارهای مختلف questions را بیرون می‌کشد: کلیدهای جایگزین، آرایهٔ آبجکت، یا متن خط‌به‌خط */
 if (!function_exists('shec_extract_questions_from_json')) {
   function shec_extract_questions_from_json($parsed) {
     $arr = [];
-
-    // ۱) اگر شیء است: دنبال کلیدهای رایج
     if (is_array($parsed)) {
       $candidates = ['questions','سوالات','پرسش‌ها','qs','items','list'];
-      foreach ($candidates as $k) {
-        if (isset($parsed[$k])) { $arr = $parsed[$k]; break; }
-      }
-      // اگر هنوز هیچ چیز: شاید خودِ parsed آرایه باشد
-      if (!$arr && array_keys($parsed)===range(0,count($parsed)-1)) {
-        $arr = $parsed;
-      }
-      // اگر هنوز هیچ چیز و __raw داریم: سعی کن خط به خط جدا کنی
+      foreach ($candidates as $k) { if (isset($parsed[$k])) { $arr = $parsed[$k]; break; } }
+      if (!$arr && array_keys($parsed)===range(0,count($parsed)-1)) $arr = $parsed;
       if (!$arr && !empty($parsed['__raw']) && is_string($parsed['__raw'])) {
         $lines = preg_split('~\r?\n+~', $parsed['__raw']);
         $arr = array_values(array_filter(array_map('trim', $lines)));
       }
     }
-
-    // ۲) اگر اعضای آرایه آبجکت بودن، فیلدهای متعارف را بردار
     $out = [];
     if (is_array($arr)) {
       foreach ($arr as $it) {
-        if (is_string($it)) {
-          $out[] = $it;
-        } elseif (is_array($it)) {
+        if (is_string($it)) $out[] = $it;
+        elseif (is_array($it)) {
           $cand = $it['q'] ?? ($it['text'] ?? ($it['title'] ?? ($it['label'] ?? '')));
           if ($cand !== '') $out[] = $cand;
         }
       }
     }
-
-    // ۳) تمیزکاری (حذف شماره‌گذاری/تکراری/کوتاه‌سازی)
     return shec_clean_questions_array($out);
   }
 }
-
-/** تمیزسازی و یکتا و کوتاه‌سازی رشته‌ها */
 if (!function_exists('shec_clean_questions_array')) {
   function shec_clean_questions_array($arr) {
     if (!is_array($arr)) return [];
     $out = [];
     foreach ($arr as $x) {
       $s = trim((string)$x);
-      // حذف شماره‌گذاری ابتدایی: "1) "، "۱. "، "- "، "• "
       $s = preg_replace('~^\s*([0-9۰-۹]+[\)\.\-:]|\-|\•)\s*~u', '', $s);
-      // کوتاه‌سازی خیلی طولانی‌ها
       if (mb_strlen($s,'UTF-8') > 140) $s = mb_substr($s, 0, 140, 'UTF-8').'…';
       if ($s !== '' && !in_array($s, $out, true)) $out[] = $s;
     }
     return $out;
   }
 }
-
-/** تضمین دقیقاً ۴ سؤال: زیاد→برش، کم→با fallback پُر */
 if (!function_exists('shec_ensure_four_questions')) {
   function shec_ensure_four_questions($arr, $fallback) {
     $arr = shec_clean_questions_array($arr);
@@ -598,7 +647,7 @@ if (!function_exists('shec_ensure_four_questions')) {
       if (!in_array($f, $arr, true)) $arr[] = $f;
       if (count($arr) >= 4) break;
     }
-    while (count($arr) < 4) $arr[] = $fallback[0]; // بسیار نادر
+    while (count($arr) < 4) $arr[] = $fallback[0];
     return $arr;
   }
 }
@@ -607,126 +656,350 @@ add_action('wp_ajax_shec_ai_questions', 'shec_ai_questions');
 add_action('wp_ajax_nopriv_shec_ai_questions', 'shec_ai_questions');
 
 /* ---------------------------------
- * FINALIZE (store answers + final)
+ * FINALIZE (store answers + final + token)
  * --------------------------------- */
 if (!function_exists('shec_finalize')) {
-function shec_finalize(){
-  shec_check_nonce_or_bypass();
+  function shec_finalize(){
+    shec_check_nonce_or_bypass();
 
-  $uid = intval($_POST['user_id'] ?? 0);
-  if ($uid<=0) wp_send_json_error(['message'=>'کاربر معتبر نیست']);
+    $uid = intval($_POST['user_id'] ?? 0);
+    if ($uid<=0) wp_send_json_error(['message'=>'کاربر معتبر نیست']);
 
-  // 1) پاسخ‌های کاربر
-  $answers = (isset($_POST['answers']) && is_array($_POST['answers'])) ? array_values($_POST['answers']) : [];
+    $answers = (isset($_POST['answers']) && is_array($_POST['answers'])) ? array_values($_POST['answers']) : [];
 
-  // 2) داده فعلی
-  $data = shec_get_data($uid);
-  if (!$data) wp_send_json_error(['message'=>'داده‌ای برای این کاربر پیدا نشد']);
+    $data = shec_get_data($uid);
+    if (!$data) wp_send_json_error(['message'=>'داده‌ای برای این کاربر پیدا نشد']);
 
-  // 3) ساخت QA از سوال‌های ذخیره‌شده
-  $questions = $data['ai']['followups']['questions'] ?? [];
-  $qa = [];
-  for ($i=0; $i<count($questions); $i++) {
-    $qa[] = ['q'=>(string)$questions[$i], 'a'=>(string)($answers[$i] ?? '')];
-  }
-
-  // 4) ذخیره فوری QA (فیکس اصلی)
-  if (!isset($data['ai'])) $data['ai'] = [];
-  if (!isset($data['ai']['followups'])) $data['ai']['followups'] = [];
-  $data['ai']['followups']['qa']       = $qa;
-  $data['ai']['followups']['answers']  = $answers;
-  $data['ai']['followups']['generated_at'] = time();
-  shec_update_data($uid, $data); // ← مهم: همین‌جا ذخیره شود
-
-  // 5) پکیج ورودی برای AI (با QA)
-  $pack = [
-    'gender'       => $data['gender'] ?? null,
-    'age'          => $data['age'] ?? null,
-    'loss_pattern' => $data['loss_pattern'] ?? null,
-    'medical'      => $data['medical'] ?? null,
-    'uploads'      => array_values($data['uploads'] ?? []),
-    'followups'    => $qa,                               // ← QA همین رکورد
-    'contact'      => $data['contact'] ?? null,
-    'mobile'       => $data['mobile'] ?? null,
-  ];
-
-  // 6) تماس با AI
-  $prompt_user = shec_render_template(shec_get_prompt_final(), ['PACK_JSON' => $pack]);
-  $resp = shec_openai_chat([['role'=>'user','content'=>$prompt_user]], ['temperature'=>0.2]);
-
-  // 7) خروجی امن + سازگار با اسکیما جدید
-  $final = [
-    'method'           => 'FIT',
-    'graft_count'      => 2500,
-    'analysis'         => 'بر اساس اطلاعات موجود، روش FIT می‌تواند مناسب باشد. برای ارزیابی دقیق‌تر، معاینه حضوری توصیه می‌شود.',
-    // فیلدهای جدید (اختیاری)
-    'concern_box'      => '',
-    'pattern_explain'  => [],
-    'followups'        => [],   // هر آیتم: {q,a,coach/tip}
-    'followup_summary' => '',
-  ];
-
-  if (!empty($resp['ok'])) {
-    $parsed = shec_json_decode_safe($resp['content']);
-    if (is_array($parsed)) {
-      foreach (['method','graft_count','analysis','concern_box','pattern_explain','followups','followup_summary'] as $k) {
-        if (isset($parsed[$k])) $final[$k] = $parsed[$k];
-      }
-      // فقط FIT نمایش/ذخیره شود
-      $final['method'] = 'FIT';
+    $questions = $data['ai']['followups']['questions'] ?? [];
+    $qa = [];
+    for ($i=0; $i<count($questions); $i++) {
+      $qa[] = ['q'=>(string)$questions[$i], 'a'=>(string)($answers[$i] ?? '')];
     }
-  } else if (($resp['http_code'] ?? 0) == 429) {
-    shec_set_rate_limit_block(180);
+
+    if (!isset($data['ai'])) $data['ai'] = [];
+    if (!isset($data['ai']['followups'])) $data['ai']['followups'] = [];
+    $data['ai']['followups']['qa']       = $qa;
+    $data['ai']['followups']['answers']  = $answers;
+    $data['ai']['followups']['generated_at'] = time();
+    shec_update_data($uid, $data);
+
+    $pack = [
+      'gender'       => $data['gender'] ?? null,
+      'age'          => $data['age'] ?? null,
+      'loss_pattern' => $data['loss_pattern'] ?? null,
+      'medical'      => $data['medical'] ?? null,
+      'uploads'      => array_values($data['uploads'] ?? []),
+      'followups'    => $qa,
+      'contact'      => $data['contact'] ?? null,
+      'mobile'       => $data['mobile'] ?? null,
+    ];
+
+    $prompt_user = shec_render_template(shec_get_prompt_final(), ['PACK_JSON' => $pack]);
+    $resp = shec_openai_chat([['role'=>'user','content'=>$prompt_user]], ['temperature'=>0.2]);
+
+    $final = [
+      'method'           => 'FIT',
+      'graft_count'      => 0, // عدد نهایی را فرانت از جدول خودش نشان می‌دهد
+      'analysis'         => 'با توجه به اطلاعات شما، روش FIT مناسب است. مسیر درمان روشن است و در کلینیک فخرائی همراه شماییم.',
+      'concern_box'      => '',
+      'pattern_explain'  => [],
+      'followups'        => $qa,   // fallback: حداقل q/a را داریم
+      'followup_summary' => '',
+    ];
+
+    if (!empty($resp['ok'])) {
+      $parsed = shec_json_decode_safe($resp['content']);
+      if (is_array($parsed)) {
+        foreach (['method','graft_count','analysis','concern_box','pattern_explain','followups','followup_summary','pre_op','post_op'] as $k) {
+          if (isset($parsed[$k])) $final[$k] = $parsed[$k];
+        }
+        $final['method'] = 'FIT'; // enforce
+      }
+    } else if (($resp['http_code'] ?? 0) == 429) {
+      shec_set_rate_limit_block(180);
+    }
+
+    $final['generated_at'] = time();
+
+    $data = shec_get_data($uid);
+    if (!isset($data['ai'])) $data['ai'] = [];
+    $data['ai']['final'] = $final;
+    shec_update_data($uid, $data);
+
+    // صدور لینک عمومی
+    $pub = shec_public_link_issue($uid, 180);
+
+    //TELEGRAM NOTIFY
+    shec_finalize_telegram_bridge($public_url, (int)$wp_user_id, $contact, $final);
+
+    wp_send_json_success([
+      'ai_result'       => wp_json_encode($final, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+      'user'            => $data,
+      'public_url'      => $pub['url'],
+      'public_expires'  => $pub['expires'],
+      'token'           => $pub['token'],
+    ]);
   }
-
-  // 8) ثبت زمان تولید نتیجه و ذخیره
-  $final['generated_at'] = time();
-
-  // بازخوانی، سپس ادغام (برای احتیاط)
-  $data = shec_get_data($uid);
-  if (!isset($data['ai'])) $data['ai'] = [];
-  $data['ai']['final'] = $final;
-
-  shec_update_data($uid, $data);
-
-  wp_send_json_success([
-    'ai_result' => wp_json_encode($final, JSON_UNESCAPED_UNICODE),
-    'user'      => $data
-  ]);
-}
-
 }
 add_action('wp_ajax_shec_finalize','shec_finalize');
 add_action('wp_ajax_nopriv_shec_finalize','shec_finalize');
 
-
 /* ---------------------------------
- * PING
+ * PUBLIC: get result by token (no nonce)
  * --------------------------------- */
-if (!function_exists('shec_ai_ping')) {
-  function shec_ai_ping(){
-    shec_check_nonce_or_bypass();
-    $has = (bool) shec_openai_api_key();
-    $out = ['api_key_present'=>$has];
-    if (!$has) return wp_send_json_success($out);
-    $resp = shec_openai_chat([
-      ['role'=>'system','content'=>'You return strict JSON only.'],
-      ['role'=>'user','content'=>'Return {"pong":true} and nothing else.']
-    ], ['temperature'=>0,'model'=>'gpt-4o-mini']);
-    $out['http_code'] = $resp['http_code'] ?? 0;
-    $out['model']     = $resp['model'] ?? null;
-    if ($resp['ok']) {
-      $parsed = shec_json_decode_safe($resp['content']);
-      $out['openai_ok'] = (bool)($parsed['pong'] ?? false);
-      $out['raw'] = $parsed;
-      $out['source'] = 'openai';
-    } else {
-      $out['openai_ok'] = false;
-      $out['error'] = $resp['error'] ?? 'unknown';
-      error_log('[SHEC][AI_PING] '.$out['error']);
+if (!function_exists('shec_result_by_token')) {
+  function shec_result_by_token() {
+    global $wpdb;
+    $token = sanitize_text_field($_REQUEST['token'] ?? $_REQUEST['t'] ?? '');
+    if ($token === '') wp_send_json_error(['message'=>'token missing'], 400);
+
+    // 1) اول transient (سریع)
+    $uid = (int)get_transient('shec_tok_'.$token);
+
+    // 2) اگر نبود، از جدول links با hash بخوان
+    if ($uid <= 0) {
+      $links_table = shec_links_table();
+      $hash = hash('sha256', $token);
+      $now  = gmdate('Y-m-d H:i:s');
+
+      $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT wp_user_id FROM {$links_table}
+         WHERE token_hash=%s AND is_active=1 AND (expires IS NULL OR expires >= %s)
+         LIMIT 1",
+        $hash, $now
+      ), ARRAY_A);
+
+      if ($row) {
+        $uid = (int)$row['wp_user_id'];
+        // cache برای دفعات بعد
+        set_transient('shec_tok_'.$token, $uid, 180*DAY_IN_SECONDS);
+      }
     }
-    wp_send_json_success($out);
+
+    // 3) مهاجرت رکوردهای قدیمی (توکن داخل data): اگر هنوز پیدا نشد
+    if ($uid <= 0) {
+      $table = shec_table();
+      $like  = '%' . $wpdb->esc_like($token) . '%';
+      $legacy = $wpdb->get_row( $wpdb->prepare(
+        "SELECT wp_user_id, data FROM {$table} WHERE data LIKE %s LIMIT 1", $like
+      ), ARRAY_A );
+
+      if ($legacy) {
+        $uid = (int)$legacy['wp_user_id'];
+
+        // upsert داخل links برای آینده
+        $links_table = shec_links_table();
+        $hash = hash('sha256', $token);
+        $now  = current_time('mysql', 1);
+        $exp  = gmdate('Y-m-d H:i:s', time() + 180*DAY_IN_SECONDS);
+
+        // همه لینک‌های قبلی کاربر را غیرفعال کن
+        $wpdb->update($links_table, ['is_active'=>0], ['wp_user_id'=>$uid]);
+
+        // درج رکورد جدید
+        $wpdb->insert($links_table, [
+          'wp_user_id' => $uid,
+          'token_hash' => $hash,
+          'created'    => $now,
+          'expires'    => $exp,
+          'is_active'  => 1,
+        ], ['%d','%s','%s','%s','%d']);
+
+        set_transient('shec_tok_'.$token, $uid, 180*DAY_IN_SECONDS);
+      }
+    }
+
+    if ($uid <= 0) wp_send_json_error(['message'=>'result not found'], 404);
+
+    $data = shec_get_data($uid);
+    if (!$data) wp_send_json_error(['message'=>'result not found'], 404);
+
+    $final = $data['ai']['final'] ?? ['method'=>'FIT','graft_count'=>0,'analysis'=>'نتیجه هنوز آماده نیست.'];
+
+    wp_send_json_success([
+      'user'       => $data,
+      'ai_result'  => wp_json_encode($final, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+      'public_url' => shec_public_page_url($token)
+    ]);
   }
 }
-add_action('wp_ajax_shec_ai_ping','shec_ai_ping');
-add_action('wp_ajax_nopriv_shec_ai_ping','shec_ai_ping');
+
+add_action('wp_ajax_shec_result_by_token', 'shec_result_by_token');
+add_action('wp_ajax_nopriv_shec_result_by_token', 'shec_result_by_token');
+
+/* ---------------------------------
+ * Shortcode: [smart_hair_result]  (renders token view like Step 6)
+ * --------------------------------- */
+if (!function_exists('shec_result_viewer_shortcode')) {
+function shec_result_viewer_shortcode($atts = []) {
+
+  $calc_url = '';
+  if ($p = get_page_by_path('hair-graft-calculator')) {
+    $calc_url = get_permalink($p->ID);
+  }
+  if (!$calc_url) {
+    $calc_url = home_url('/hair-graft-calculator/');
+  }
+
+
+  // 2) HTML (استایل و ساختار همون استپ 6، اما بدون کلاس .step که سفید نشه)
+  $img_path = SHEC_URL.'public/assets/img/';
+  ob_start(); ?>
+<div id="shec-result-token" class="shec-result-root">
+
+
+
+  <!-- 👇 همین قسمت PDF می‌شود -->
+  <div id="proposal-pdf-root" class="proposal-container">
+    <h3>نتیجه مشاوره</h3>
+
+    <!-- خروجی هوش مصنوعی -->
+    <div id="ai-result-box" class="result-box" style="min-height:320px;padding:24px">
+      <div style="opacity:.7">در حال بارگذاری نتیجه...</div>
+    </div>
+
+    <!-- خلاصه اطلاعات کاربر (بلوک‌های استپ ۶ شما) -->
+    <div class="sample-info-wrapper">
+      <p style="font-size:20px; font-weight:bold; text-align:center;">شما هم می‌توانید ظاهر خود را متحول کنید!</p>
+      <img class="sample-image" src="https://fakhraei.clinic/wp-content/uploads/2025/06/BEFORE_Miss.webp" style="width: 100%;border-radius: 5px;" />
+    </div>
+
+    <div class="hair-trans-wrapper">
+      <img src="https://fakhraei.clinic/wp-content/uploads/2025/06/FIT1-1-scaled-1.png" style="width: 100%;border-radius: 5px;" alt="کاشت مو" />
+    </div>
+
+    <div class="fit-timeline-wrapper">
+      <p style="font-size:20px; font-weight:bold; text-align:center;">جدول زمانی پیش‌بینی نتایج کاشت مو (تکنیک FIT)</p>
+      <table class="fit-timeline-table">
+        <thead>
+          <tr><th>بازه زمانی</th><th>چه چیزی انتظار می‌رود؟</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>روز ۱ تا ۷</td><td>قرمزی و کمی تورم طبیعی است. این علائم به مرور کاهش می‌یابند.</td></tr>
+          <tr><td>هفته ۲ تا ۳</td><td>موهای کاشته‌شده به‌طور موقت می‌ریزند (شوک ریزش)؛ که کاملاً طبیعی است.</td></tr>
+          <tr><td>ماه ۱ تا ۲</td><td>پوست سر به حالت عادی برمی‌گردد اما هنوز موهای جدید قابل‌مشاهده نیستند.</td></tr>
+          <tr><td>ماه ۳ تا ۴</td><td>شروع رشد موهای جدید؛ معمولاً نازک و ضعیف هستند.</td></tr>
+          <tr><td>ماه ۵ تا ۶</td><td>بافت موها قوی‌تر می‌شود و تراکم بیشتری پیدا می‌کنند.</td></tr>
+          <tr><td>ماه ۷ تا ۹</td><td>موها ضخیم‌تر، متراکم‌تر و طبیعی‌تر می‌شوند؛ تغییرات واضح‌تر خواهند بود.</td></tr>
+          <tr><td>ماه ۱۰ تا ۱۲</td><td>۸۰ تا ۹۰ درصد نتیجه نهایی قابل مشاهده است.</td></tr>
+          <tr><td>ماه ۱۲ به بعد</td><td>موها کاملاً تثبیت می‌شوند؛ نتیجه نهایی طبیعی و ماندگار خواهد بود.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="why-padra-wrapper">
+      <p style="font-size:20px; font-weight:bold; text-align:center;margin-top: 50px;">چرا کلینیک فخرائی را انتخاب کنیم؟</p>
+
+      <div class="why-padra-item">
+        <img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Black-White-Yellow-Simple-Initial-Name-Logo-22-1.png" alt="" />
+        <div class="why-padra-info">
+          <span class="why-padra-info-title">تیم حرفه‌ای و با تجربه</span>
+          <p class="why-padra-info-description">کاشت مو در کلینیک فخرائی توسط تکنسین‌های آموزش‌دیده و زیر نظر پزشک متخصص انجام می‌شود.</p>
+        </div>
+      </div>
+
+      <div class="why-padra-item">
+        <img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003350.png" alt="" />
+        <div class="why-padra-info">
+          <span class="why-padra-info-title">روزانه بیش از ۷۰۰ عمل موفق</span>
+          <p class="why-padra-info-description">با سابقه‌ای بیش از ۲۰ سال و هزاران کاشت موفق، به‌خوبی می‌دانیم چگونه نتیجه‌ای طبیعی و ماندگار به دست آوریم.</p>
+        </div>
+      </div>
+
+      <div class="why-padra-item">
+        <img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003557.png" alt="" />
+        <div class="why-padra-info">
+          <span class="why-padra-info-title">تعرفه‌ منصفانه با حفظ کیفیت</span>
+          <p class="why-padra-info-description">ما تلاش می‌کنیم بهترین تکنولوژی و تخصص را با هزینه‌ای منطقی ارائه دهیم؛ بدون افت در کیفیت یا نتیجه.</p>
+        </div>
+      </div>
+
+      <div class="why-padra-item">
+        <img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003353.png" alt="" />
+        <div class="why-padra-info">
+          <span class="why-padra-info-title">محیط راحت و امکانات کامل </span>
+          <p class="why-padra-info-description">فضایی آرام، بهداشتی و مجهز در کنار تجربه‌ای مطمئن، برای همراهی‌تان فراهم کرده‌ایم.</p>
+        </div>
+      </div>
+
+      <div class="why-padra-item">
+        <img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003563.png" alt="" />
+        <div class="why-padra-info">
+          <span class="why-padra-info-title">اقامت رایگان برای مراجعین از شهرهای دیگر</span>
+          <p class="why-padra-info-description">در کلینیک فخرائی، اقامت برای مراجعین از سایر شهرها رایگان است.</p>
+        </div>
+      </div>
+
+      <div class="why-padra-item">
+        <img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/bihesi.png" alt="" />
+        <div class="why-padra-info">
+          <span class="why-padra-info-title">بدون درد و با آرامش</span>
+          <p class="why-padra-info-description">فرایند درمان با استفاده از داروهای بی‌حسی و تکنیک‌های جدید انجام می‌شود تا کاشتی بدون درد را تجربه کنید.</p>
+        </div>
+      </div>
+
+      <div class="why-padra-item">
+        <img class="why-padra-logo" src="https://fakhraei.clinic/wp-content/uploads/2025/06/Group-1000003351.png" alt="" />
+        <div class="why-padra-info">
+          <span class="why-padra-info-title">همراهی واقعی، قبل تا بعد از عمل</span>
+          <p class="why-padra-info-description">از مشاوره و ارزیابی اولیه تا مراقبت‌های پس از عمل، همیشه در کنار شما هستیم.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions mt-3">
+      <button id="reset-form"  data-reset-href="<?php echo esc_attr($calc_url); ?>" class="btn btn-danger">شروع مجدد</button>
+      <button id="download-pdf" class="btn btn-primary">دانلود PDF</button>
+    </div>
+  </div>
+</div>
+<?php
+  $html = ob_get_clean();
+
+  // 3) Inline JS بعد از form.js
+  $inline = <<<JS
+  (function(){
+    var box   = document.getElementById('ai-result-box');
+    var t     = (new URLSearchParams(location.search)).get('t') || (new URLSearchParams(location.search)).get('token');
+    if(!box) return;
+
+    if(!t){
+      box.innerHTML = '<div style="padding:24px">توکن پیدا نشد.</div>';
+      return;
+    }
+
+    fetch(shec_ajax.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: 'action=shec_result_by_token&t=' + encodeURIComponent(t)
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(!res || !res.success){
+        box.innerHTML = '<div style="padding:24px">نتیجه‌ای یافت نشد.</div>';
+        return;
+      }
+      var payload = { user: res.data.user, ai_result: res.data.ai_result };
+      if (window.SHEC_renderFinal) {
+        window.SHEC_renderFinal(payload);
+      } else {
+        box.innerHTML = '<div style="padding:24px">UI نتیجه بارگذاری نشد.</div>';
+      }
+    })
+    .catch(function(){
+      box.innerHTML = '<div style="padding:24px">خطا در دریافت نتیجه.</div>';
+    });
+  })();
+JS;
+  wp_add_inline_script('shec-form-js', $inline, 'after');
+
+  return $html;
+}
+
+}
+add_shortcode('smart_hair_result','shec_result_viewer_shortcode');
+
+/* ---------------------------------
+ * Ensure pages exist (no reliance on activation hook)
+ * --------------------------------- */
+
