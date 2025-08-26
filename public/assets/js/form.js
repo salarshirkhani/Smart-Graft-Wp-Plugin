@@ -1043,6 +1043,21 @@ window.SHEC_renderFinal = function(fin){
     const payloadContact = { user_id: uid, first_name, last_name, state, city, social };
     const $btn = $(this).find('button[type="submit"]').prop('disabled', true);
 
+    // === پاک‌سازی استیت فرم (فقط کلیدهای مربوط به افزونه) ===
+    window.SHEC_clearFormState = function () {
+      try {
+        for (var i = localStorage.length - 1; i >= 0; i--) {
+          var k = localStorage.key(i);
+          if (/^(shec_|SHEC_|hair_)/i.test(k)) {
+            localStorage.removeItem(k);
+          }
+        }
+        // اگر قبلاً چیزی برای ریدایرکت ذخیره کرده‌ایم
+        localStorage.removeItem('shec_last_public');
+        sessionStorage.removeItem('shec_force_reset');
+      } catch (e) {}
+    };
+
     UI.finalStepShowLoader();
     API.step5(payloadContact).done(function(res){
       if (!res || !res.success) {
@@ -1071,10 +1086,10 @@ window.SHEC_renderFinal = function(fin){
 
           // URL عمومی توکن‌دار که بک‌اند تو shec_finalize برمی‌گردونه
           const publicUrl     = d.public_url || (d.data && d.data.public_url);
-          const publicExpires = d.public_expires || (d.data && d.data.public_expires);
 
           // ✅ مستقیم برو به صفحه‌ی نتیجه‌ی توکن‌دار
           if (publicUrl) {
+            LS.clear(); 
             try { UI.finalStepHideLoader(); } catch(_) {}
             // جلوگیری از رفتن به Step6
             window.SHEC_ALLOW_STEP6 = false;
@@ -1108,9 +1123,87 @@ window.SHEC_renderFinal = function(fin){
       toastr.error('خطا در ارتباط با سرور');
       $btn.prop('disabled', false);
     });
-
+    
 
   });
+
+  (function($){
+  // 1) مانیتور: آیا SHEC_renderFinal اصلاً وجود دارد؟
+  (function hookRender(){
+    var tried = 0;
+    function wrap(){
+      if (typeof window.SHEC_renderFinal === 'function' && !window.__SHEC_RF_WRAPPED__) {
+        var orig = window.SHEC_renderFinal;
+        window.SHEC_renderFinal = function(payload){
+          console.log('[SHEC] renderFinal:payload =', payload);
+          try {
+            return orig.apply(this, arguments);
+          } catch(e){
+            console.error('[SHEC] renderFinal:ERROR', e);
+            $('#ai-result-box').text('❌ خطای رندر نتیجه. Console را ببینید.');
+          }
+        };
+        window.__SHEC_RF_WRAPPED__ = true;
+        console.log('[SHEC] renderFinal:wrapped');
+      } else if (tried++ < 20) {
+        setTimeout(wrap, 150); // صبر کوتاه درصورت دیفر لود شدن
+      } else {
+        console.warn('[SHEC] renderFinal:missing after retries');
+      }
+    }
+    wrap();
+  })();
+
+  // 2) لودر نتیجه با لاگ و سازگاری با هر دو شکل پاسخ (data/بدون data و ai_result رشته/آبجکت)
+  function shecLoadResultByToken(){
+    var t = new URLSearchParams(location.search).get('t');
+    var $box = $('#ai-result-box');
+    if (!t) { $box.text('❌ توکن یافت نشد.'); return; }
+    console.log('[SHEC] fetching result_by_token t=', t);
+
+    $.ajax({
+      url: (window.shec_ajax && shec_ajax.url) || '/wp-admin/admin-ajax.php',
+      method: 'POST',
+      data: {
+        action: 'shec_result_by_token',
+        t: t,
+        nonce: (window.shec_ajax && shec_ajax.nonce) || ''
+      }
+    })
+    .done(function(resp){
+      console.log('[SHEC] result_by_token:resp =', resp);
+      // سازگاری: بعضی نسخه‌ها data داخل resp.data است
+      var payload = (resp && (resp.data || (resp.success ? resp : null)));
+      if (!resp || !resp.success || !payload) {
+        $box.text('❌ داده‌ای یافت نشد.');
+        return;
+      }
+      // ai_result اگر رشته بود، پارس کن
+      if (typeof payload.ai_result === 'string') {
+        try { payload.ai_result = JSON.parse(payload.ai_result); }
+        catch(e){ console.warn('[SHEC] ai_result not JSON, keep as string'); }
+      }
+      // فراخوانی رندر
+      if (typeof window.SHEC_renderFinal === 'function') {
+        window.SHEC_renderFinal(payload);
+      } else {
+        $box.text('❌ تابع رندر یافت نشد (SHEC_renderFinal).');
+      }
+    })
+    .fail(function(xhr){
+      console.error('[SHEC] result_by_token:FAIL', xhr && xhr.responseText);
+      $box.text('❌ خطا در دریافت نتیجه.');
+    });
+  }
+
+  // 3) فقط روی صفحه نتیجه اجرا کن
+  $(function(){
+    if (location.pathname.indexOf('/hair-result') !== -1) {
+      shecLoadResultByToken();
+    }
+  });
+
+})(jQuery);
 
   /* =========================
    * PDF (optional)

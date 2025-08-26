@@ -189,6 +189,32 @@ function shec_enqueue_assets() {
     ]);
 }
 
+// ===== Debug logger (قابل خاموش/روشن با option یا ?shec_debug=1) =====
+if (!function_exists('shec_dbg_on')) {
+  function shec_dbg_on() {
+    if (defined('SHEC_DEBUG') && SHEC_DEBUG) return true;
+    if (!empty($_REQUEST['shec_debug'])) return true;
+    return (bool) get_option('shec_debug', false);
+  }
+}
+if (!function_exists('shec_log')) {
+  function shec_log($tag, $payload=null) {
+    if (!shec_dbg_on()) return;
+    if (!isset($GLOBALS['__shec_req'])) {
+      $GLOBALS['__shec_req'] = substr(md5(uniqid('', true)), 0, 8);
+    }
+    $rid  = $GLOBALS['__shec_req'];
+    $line = '[SHEC]['.$rid.']['.$tag.'] ';
+    if ($payload !== null) {
+      $line .= is_string($payload) ? $payload : wp_json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    }
+    error_log($line);
+  }
+}
+add_action('init', function(){
+  shec_log('init', ['uri'=>($_SERVER['REQUEST_URI'] ?? ''), 'user'=>get_current_user_id()]);
+});
+
 
 require_once SHEC_PATH . 'includes/helpers.php';
 require_once SHEC_PATH . 'includes/graft-estimator/ajax-handlers.php';

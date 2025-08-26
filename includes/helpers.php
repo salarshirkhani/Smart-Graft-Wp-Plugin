@@ -130,8 +130,8 @@ function hide_header_footer_on_shec_page() {
                 height: 100vh; 
             }
             #progress-wrapper{
-                 width: 100vw !important;
-                 max-width:100% !important;
+                 width: 100% !important;
+                 max-width: 700px !important;
             }
             :root :where(.is-layout-constrained) > * {
                 margin-block-start: -0.8rem;
@@ -173,7 +173,7 @@ function hide_header_footer_on_shec_page() {
                 height: 100vh; 
             }
             #progress-wrapper{
-                 width: 100vw !important;
+                 width: 100% !important;
                  max-width:100% !important;
             }
             :root :where(.is-layout-constrained) > * {

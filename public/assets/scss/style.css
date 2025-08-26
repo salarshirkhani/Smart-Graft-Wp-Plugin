@@ -11981,10 +11981,39 @@ textarea.form-control-lg {
   font-style: normal;
   font-display: swap;
 }
+/* بک‌گراند ثابت تمام‌صفحه (سازگار با iOS/Android) */
+html, body {
+  height: auto; /* اجازه‌ی اسکرول طبیعی */
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: "IRANSansWeb", sans-serif;
-  background-color: #F8F7F3;
   direction: rtl;
+  background: transparent !important; /* بک‌گراند اصلی را می‌بریم روی لایهٔ ثابت */
+  /* فلکس و 100vh را حذف کن تا محتوا اسکرول شود */
+}
+
+/* لایهٔ بک‌گراند ثابت پشت محتوا */
+body::before {
+  content: "";
+  position: fixed;
+  z-index: -1; /* پشت همهٔ محتوا */
+  inset: 0; /* top:0; right:0; bottom:0; left:0 */
+  background-image: url("https://fakhraei.clinic/wp-content/uploads/2024/04/Layer-2-1-1.webp");
+  background-position: center right; /* یا center / top right؛ سلیقه‌ای */
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(5px);
+}
+
+/* کانتینر پروپوزال: وسط‌چین اختیاری */
+#proposal-pdf-root {
+  width: min(1080px, 96vw);
+  margin: 24px auto;
+  /* اگر قبلاً فلکس روی body بوده و برای چینش نیاز داری: */
+  /* display: block; */
 }
 
 .form-select {
@@ -12150,7 +12179,6 @@ select:focus {
 .btn-prev {
   clear: both;
   display: block;
-  margin-top: 10px;
   background-color: #fff !important;
   color: #FF5A00 !important;
   border: none !important;
@@ -12191,14 +12219,27 @@ select:focus {
   color: #ff6600;
 }
 
+.flexy {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  align-content: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
 #step-container {
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1294117647);
+  align-content: space-between;
+  border-radius: 20px;
   margin: 0 auto;
   padding: 10px;
-  background-color: #ffffff !important;
+  background: linear-gradient(135deg, rgba(247, 247, 247, 0.88) 10%, rgba(255, 255, 255, 0.45) 90%);
+  border: 1.5px solid rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
   outline: none !important;
-  max-width: 700px;
+  width: 700px;
 }
 #step-container #step-0 h3 {
   line-height: 38px;
@@ -12256,7 +12297,7 @@ select:focus {
   margin: 31px auto;
   margin-bottom: 65px;
   justify-content: space-between;
-  padding: 20px 50px 50px 50px !important;
+  padding: 20px 5px 50px 5px !important;
   border-bottom: 1px solid #CDCFCE;
 }
 #step-container #step-1 .a-box {
@@ -12267,9 +12308,9 @@ select:focus {
 }
 #step-container #step-1 .gender-option {
   display: inline-block;
-  margin: 0 10px;
   font-weight: 700;
   font-size: 16px;
+  width: 100%;
   cursor: pointer;
 }
 #step-container #step-1 .gender-option .hidden-radio {
@@ -12282,8 +12323,10 @@ select:focus {
   padding: 10px 25px;
   display: flex;
   align-items: center;
-  gap: 30px;
   transition: all 0.3s ease;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  flex-direction: row;
 }
 #step-container #step-1 .gender-option .option-box img {
   width: 60px;
@@ -12697,7 +12740,6 @@ select:focus {
   #step-container .btn,
   #step-container .btn-prev {
     width: 100%;
-    margin-top: 10px;
   }
   #step-container .toggle-group {
     flex-direction: column;
@@ -12982,6 +13024,37 @@ select:focus {
 .proposal-container {
   background: #fff;
   color: #000;
+  margin-top: 60px;
+  border-radius: 10px;
+}
+
+/* کانتینر نتیجه: عرض کنترل‌شده و وسط‌چین */
+#proposal-pdf-root.proposal-container {
+  position: relative;
+  box-sizing: border-box;
+  max-width: 980px; /* عرض دلخواه صفحه‌ی نتیجه */
+  width: 100%;
+  margin: 44px auto; /* وسط‌چین افقی */
+  padding: 0 16px; /* حاشیه داخلی کم برای موبایل */
+}
+
+/* جلوگیری از وراثت پدینگ/کانسترِین تم گوتنبرگ روی ریشه‌ی ما */
+:where(.wp-block-post-content, .entry-content, .has-global-padding, .is-layout-constrained) #proposal-pdf-root.proposal-container {
+  margin-right: auto !important;
+  margin-left: auto !important;
+  max-width: 980px !important;
+}
+
+/* تصاویر/عناصر داخلی از کانتینر بیرون نزنند */
+#proposal-pdf-root.proposal-container * {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* اگر از بک‌گراند ثابت با ::before استفاده کردی، تزاحم نداشته باشد */
+body::before {
+  pointer-events: none; /* فقط پس‌زمینه؛ کلیک‌ها را نگیرد */
+  z-index: -1; /* پشت محتوا بماند */
 }
 
 /* فقط داخل ناحیهٔ نتیجه */
@@ -13453,4 +13526,11 @@ option {
 .ai-qa-tip .bot {
   margin-inline-start: 2px;
   margin-inline-end: 6px;
+}
+
+.glassing {
+  background: linear-gradient(135deg, rgba(237, 235, 228, 0.23) 10%, rgba(237, 235, 228, 0.37) 90%);
+  border: 1.5px solid rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
 }/*# sourceMappingURL=style.css.map */

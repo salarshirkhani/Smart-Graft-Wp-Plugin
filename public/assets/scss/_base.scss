@@ -14,11 +14,41 @@ $bg-default: #f5f5f5;
   font-display: swap;
 }
 
-body {
-  font-family: 'IRANSansWeb', sans-serif;
-  background-color: #F8F7F3;
-  direction: rtl;
+/* بک‌گراند ثابت تمام‌صفحه (سازگار با iOS/Android) */
+html, body {
+  height: auto;            /* اجازه‌ی اسکرول طبیعی */
+  min-height: 100%;
+  overflow-x: hidden;
 }
+
+body {
+  font-family: "IRANSansWeb", sans-serif;
+  direction: rtl;
+  background: transparent !important;   /* بک‌گراند اصلی را می‌بریم روی لایهٔ ثابت */
+  /* فلکس و 100vh را حذف کن تا محتوا اسکرول شود */
+}
+
+/* لایهٔ بک‌گراند ثابت پشت محتوا */
+body::before {
+  content: "";
+  position: fixed;
+  z-index: -1;             /* پشت همهٔ محتوا */
+  inset: 0;                /* top:0; right:0; bottom:0; left:0 */
+  background-image: url("https://fakhraei.clinic/wp-content/uploads/2024/04/Layer-2-1-1.webp");
+  background-position: center right;    /* یا center / top right؛ سلیقه‌ای */
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(5px);
+}
+
+/* کانتینر پروپوزال: وسط‌چین اختیاری */
+#proposal-pdf-root {
+  width: min(1080px, 96vw);
+  margin: 24px auto;
+  /* اگر قبلاً فلکس روی body بوده و برای چینش نیاز داری: */
+  /* display: block; */
+}
+
 .form-select{
   direction: rtl;
   background-position: left 0.75rem center !important;

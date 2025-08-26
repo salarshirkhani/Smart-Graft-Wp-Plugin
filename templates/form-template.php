@@ -1,12 +1,13 @@
 <?php $img_path = plugins_url('../public/assets/img/', __FILE__); ?>
 <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js"type="module"></script>
 
-<div id="progress-wrapper" class="position-sticky top-0 start-0 w-100 bg-white z-3" >
-    <div class="progress" style="height: 8px; border-radius:0px;">
-         <div id="progress-bar" class="progress-bar bg-or" role="progressbar" style="width: 0%; transition: width 0.4s ease;"></div>
+
+<div class="container mt-5 flexy">
+    <div id="progress-wrapper" class="position-sticky top-0 start-0 bg-white z-3" >
+        <div class="progress" style="height: 8px; border-radius:5px;">
+            <div id="progress-bar" class="progress-bar bg-or" role="progressbar" style="width: 0%; transition: width 0.4s ease;"></div>
+        </div>
     </div>
-</div>
-<div class="container mt-5">
     <div id="step-container">
 
         <div class="container">

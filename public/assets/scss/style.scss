@@ -50,7 +50,6 @@ select{
 .btn-prev{
     clear: both;
     display: block;
-    margin-top: 10px;
     background-color: #fff !important;
     color: #FF5A00 !important;
     border: none !important;
@@ -93,16 +92,26 @@ select{
                 color: #ff6600;
             }
         }
-
+.flexy{
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  align-content: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
 #step-container{
-    border-radius: 10px;
-    box-shadow: 0 0 15px #00000021;
+    align-content: space-between;
+    border-radius: 20px;
     margin: 0 auto;
-    padding:10px;
-    background-color: #ffffff !important;
+    padding: 10px;
+    background: linear-gradient(135deg, rgb(247 247 247 / 88%) 10%, rgb(255 255 255 / 45%) 90%);
+    border: 1.5px solid rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
     outline: none !important;
-    max-width: 700px;
-
+    width: 700px;
     #step-0{
     
         h3{
@@ -163,7 +172,7 @@ select{
             margin: 31px auto;
             margin-bottom: 65px;
             justify-content: space-between;
-            padding: 20px 50px 50px 50px !important;
+            padding: 20px 5px 50px 5px !important;
             border-bottom: 1px solid #CDCFCE;
         }
 
@@ -176,9 +185,9 @@ select{
 
         .gender-option {
             display: inline-block;
-            margin: 0 10px;
             font-weight: 700;
             font-size: 16px;
+            width: 100%;
             cursor: pointer;
 
             .hidden-radio {
@@ -187,14 +196,16 @@ select{
 
             .option-box {
                 border: 1px solid #ddd;
-                border-radius: $border-radius;
-                background: $bg-default;
+
+                border-radius: 10px;
+                background: #f5f5f5;
                 padding: 10px 25px;
                 display: flex;
                 align-items: center;
-                gap: 30px;
                 transition: all 0.3s ease;
-
+                justify-content: space-between;
+                flex-wrap: nowrap;
+                flex-direction: row;
                 img {
                 width: 60px;
                 height: 60px;
@@ -705,7 +716,6 @@ select{
     .btn,
     .btn-prev {
       width: 100%;
-      margin-top: 10px;
     }
 
     // toggle-group ستونی
@@ -933,7 +943,39 @@ select{
 .proposal-container {
   background: #fff;
   color: #000;
+  margin-top: 60px;
+  border-radius: 10px;
 }
+/* کانتینر نتیجه: عرض کنترل‌شده و وسط‌چین */
+#proposal-pdf-root.proposal-container{
+  position: relative;
+  box-sizing: border-box;
+  max-width: 980px;           /* عرض دلخواه صفحه‌ی نتیجه */
+  width: 100%;
+  margin: 44px auto;          /* وسط‌چین افقی */
+  padding: 0 16px;            /* حاشیه داخلی کم برای موبایل */
+}
+
+/* جلوگیری از وراثت پدینگ/کانسترِین تم گوتنبرگ روی ریشه‌ی ما */
+:where(.wp-block-post-content, .entry-content, .has-global-padding, .is-layout-constrained)
+  #proposal-pdf-root.proposal-container{
+    margin-right: auto !important;
+    margin-left:  auto !important;
+    max-width: 980px !important;
+}
+
+/* تصاویر/عناصر داخلی از کانتینر بیرون نزنند */
+#proposal-pdf-root.proposal-container *{
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* اگر از بک‌گراند ثابت با ::before استفاده کردی، تزاحم نداشته باشد */
+body::before{
+  pointer-events: none;   /* فقط پس‌زمینه؛ کلیک‌ها را نگیرد */
+  z-index: -1;            /* پشت محتوا بماند */
+}
+
 /* فقط داخل ناحیهٔ نتیجه */
 #proposal-pdf-root, #proposal-pdf-root * {
   letter-spacing: normal !important;
@@ -1252,3 +1294,10 @@ option {
     background:#f6f9ff;border:1px solid #e6efff
   }
   .ai-qa-tip .bot{margin-inline-start:2px;margin-inline-end:6px}
+
+  .glassing {
+      background: linear-gradient(135deg, rgb(237 235 228 / 23%) 10%, rgb(237 235 228 / 37%) 90%);
+      border: 1.5px solid rgba(255, 255, 255, 0.24);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+  }
