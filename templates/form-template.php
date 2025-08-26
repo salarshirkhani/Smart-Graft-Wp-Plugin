@@ -141,7 +141,7 @@
         <!-- Step 3: Upload-->
         <div id="step-3" class="step d-none">
             <div class="container-image shec-section">
-                <label class="d-block mb-2 fw-bold ">لطفاً عکس‌هایی از موی سر خود، از زوایای مشخص‌شده بارگذاری کنید. (اختیاری)</label>
+                <label class="d-block mb-2 fw-bold ">لطفاً عکس‌هایی از موی سر خود، از زوایای مشخص‌شده بارگذاری کنید. (تصویر روبرو اجباری!)</label>
                 <div class="subheading0-image">چرا به این تصاویر نیاز داریم؟</div>
                 <div class="description-image" dir="rtl" style="text-align: right;line-height: 1.8">
                     <p>تصاویر بانک مو و مناطقی که دچار ریزش مو شده&zwnj;اند، به مشاوران ما کمک می&zwnj;کنند تا راهنمایی بهتری ارائه کرده و یک برنامه درمانی شخصی&zwnj;سازی&zwnj;شده برای شما تنظیم کنند.</p>
