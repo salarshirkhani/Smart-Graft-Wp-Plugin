@@ -586,6 +586,30 @@ function shec_display_user_details() {
  * ========================= */
 function shec_display_settings() {
     $tg_msg = ''; // پیام وضعیت وبهوک
+    
+    
+    //TEST TELEGRAM
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shec_test_telegram'])) {
+        $token = get_option('shec_telegram_api', '');
+        $chat  = get_option('shec_admin_chat_id', '');
+        if ($token && $chat) {
+            $res = wp_remote_post("https://api.telegram.org/bot{$token}/sendMessage", [
+                'headers' => ['Content-Type'=>'application/json'],
+                'body'    => wp_json_encode([
+                    'chat_id' => $chat,
+                    'text'    => "✅ تست موفق! افزونه به تلگرام وصل است.",
+                ], JSON_UNESCAPED_UNICODE),
+            ]);
+            if (is_wp_error($res)) {
+                echo '<div class="error"><p>❌ خطا در ارسال: '.esc_html($res->get_error_message()).'</p></div>';
+            } else {
+                echo '<div class="updated"><p>پیام تست با موفقیت ارسال شد.</p></div>';
+            }
+        } else {
+            echo '<div class="error"><p>⚠️ ابتدا توکن ربات و Chat ID ادمین را ذخیره کنید.</p></div>';
+        }
+    }
+
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ذخیره تنظیمات
@@ -656,6 +680,11 @@ function shec_display_settings() {
 
     echo '<div class="shec-field"><label>Chat ID ادمین</label>
           <input type="text" name="shec_admin_chat_id" value="'.esc_attr($admin_id).'" /></div>';
+          
+    echo '<div class="shec-actions" style="margin-top:10px">';
+    echo '<button type="submit" name="shec_test_telegram" value="1" class="button button-secondary">📨 ارسال پیام تست تلگرام</button>';
+    echo '</div>';
+
 
     // باکس وبهوک (دکمه‌ها submit همین فرم هستند)
     shec_admin_render_telegram_webhook_box();

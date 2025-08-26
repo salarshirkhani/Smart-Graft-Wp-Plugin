@@ -222,6 +222,7 @@ select{
                 span {
                 color: #555;
                 font-weight: 700;
+                margin-left: 20px;
                 font-size: 17px;
                 transition: all 0.3s ease;
                 }
@@ -1301,3 +1302,88 @@ option {
       backdrop-filter: blur(18px) saturate(160%);
       -webkit-backdrop-filter: blur(18px) saturate(160%);
   }
+.shec-section {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s ease;
+}
+
+.shec-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* فقط یک مرز: بیرونی روی wrap */
+.upload-wrap{
+  position:relative;
+  border:1px solid transparent;
+  border-radius:10px;
+  padding:12px;
+}
+
+/* حالت موفق: فقط همین مرز سبز دیده شود */
+.upload-wrap.upload-success{
+  border-color:#22c55e;
+}
+
+/* مرز داخلی را در حالت موفق «مجبوراً» حذف کن */
+.upload-wrap.upload-success > .upload-box{
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  padding:0 !important;           
+}
+
+/* کادر داخلی پیش‌فرض (وقتی هنوز آپلود نشده) */
+.upload-box{
+  position:relative;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#fff;
+  padding:16px;
+  text-align:center;
+  z-index:1;
+}
+
+/* وقتی آپلود شد: مرز داخلی را حذف کن تا دو تا بوردر نداشته باشیم */
+.upload-wrap.upload-success .upload-box{
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  padding:0;              /* اگر فاصله‌ات بهم می‌ریزد می‌توانی 8px بگذاری */
+}
+.upload-wrap.upload-success > .upload-box::before,
+.upload-wrap.upload-success > .upload-box::after{
+  content:none !important;
+  display:none !important;
+}
+/* تصویر */
+.upload-box .thumbnail{
+  display:block;
+  width:100%;
+  max-width:260px;
+  height:260px;
+  object-fit:cover;
+  border-radius:10px;
+  margin:10px auto 0;
+  image-orientation:from-image;
+}
+
+/* حالت خطای روبه‌رو: فقط مرز داخلی خط‌چین قرمز (مثل قبل) */
+.shec-upload-front.is-required-error > .upload-box{
+  border:2px dashed #ef4444 !important;
+  background:linear-gradient(180deg,#fff,#fffaf9) !important;
+  box-shadow:none !important;
+}
+.upload-box .err-msg{ margin-top:8px; font-size:13px; font-weight:600; color:#d32f2f }
+
+/* اوورلی حذف (همان قبل؛ برای کامل‌بودن) */
+.upload-overlay{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .2s; background:rgba(0,0,0,.25);
+  backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  pointer-events:none; z-index:2;
+}
+.upload-wrap.upload-success:hover .upload-overlay{ opacity:1; pointer-events:auto }
+.remove-btn{ border:0; border-radius:999px; padding:10px 12px; background:#ef4444; color:#fff; font-size:18px; cursor:pointer }
+

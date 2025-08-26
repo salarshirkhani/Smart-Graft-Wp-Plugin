@@ -105,10 +105,33 @@ add_action('wp_enqueue_scripts', 'shec_remove_theme_styles_and_scripts', 100) ;
 function hide_header_footer_on_shec_page() {
     if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_calculator')) {
         echo '<style>
-            body {
-                margin: 0;
-                padding: 0;
+            /* بک‌گراند ثابت تمام‌صفحه (سازگار با iOS/Android) */
+            html, body {
+              height: auto;            /* اجازه‌ی اسکرول طبیعی */
+              min-height: 100%;
+              overflow-x: hidden;
             }
+
+            body {
+              font-family: "IRANSansWeb", sans-serif;
+              direction: rtl;
+              background: transparent !important;   /* بک‌گراند اصلی را می‌بریم روی لایهٔ ثابت */
+              /* فلکس و 100vh را حذف کن تا محتوا اسکرول شود */
+            }
+
+            /* لایهٔ بک‌گراند ثابت پشت محتوا */
+            body::before {
+              content: "";
+              position: fixed;
+              z-index: -1;             /* پشت همهٔ محتوا */
+              inset: 0;                /* top:0; right:0; bottom:0; left:0 */
+              background-image: url("https://fakhraei.clinic/wp-content/uploads/2024/04/Layer-2-1-1.webp");
+              background-position: center right;    /* یا center / top right؛ سلیقه‌ای */
+              background-repeat: no-repeat;
+              background-size: cover;
+              filter: blur(5px);
+            }
+
             main{
                 margin-top:0px !important ;
                 padding-left:0px !important;
@@ -148,10 +171,33 @@ function hide_header_footer_on_shec_page() {
 
     if (is_page() && has_shortcode(get_post()->post_content, 'smart_hair_result')) {
         echo '<style>
-            body {
-                margin: 0;
-                padding: 0;
+            /* بک‌گراند ثابت تمام‌صفحه (سازگار با iOS/Android) */
+            html, body {
+              height: auto;            /* اجازه‌ی اسکرول طبیعی */
+              min-height: 100%;
+              overflow-x: hidden;
             }
+
+            body {
+              font-family: "IRANSansWeb", sans-serif;
+              direction: rtl;
+              background: transparent !important;   /* بک‌گراند اصلی را می‌بریم روی لایهٔ ثابت */
+              /* فلکس و 100vh را حذف کن تا محتوا اسکرول شود */
+            }
+
+            /* لایهٔ بک‌گراند ثابت پشت محتوا */
+            body::before {
+              content: "";
+              position: fixed;
+              z-index: -1;             /* پشت همهٔ محتوا */
+              inset: 0;                /* top:0; right:0; bottom:0; left:0 */
+              background-image: url("https://fakhraei.clinic/wp-content/uploads/2024/04/Layer-2-1-1.webp");
+              background-position: center right;    /* یا center / top right؛ سلیقه‌ای */
+              background-repeat: no-repeat;
+              background-size: cover;
+              filter: blur(5px);
+            }
+
             main{
                 margin-top:0px !important ;
                 padding-left:0px !important;

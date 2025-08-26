@@ -29,7 +29,7 @@
         <form id="form-step-1" class="text-center">
 
             <!-- Gender Selection -->
-            <div class="mb-4">
+            <div class="mb-4 shec-section">
                 <label class="d-block mb-2 fw-bold ">جنسیت خود را انتخاب کنید <span class="text-danger">*</span></label>
                 <div class="g-box d-flex gap-3">
                     <label class="gender-option">
@@ -51,7 +51,7 @@
             </div>
 
             <!-- Age -->
-            <div class="mb-4">
+            <div class="mb-4 shec-section">
                 <label class="d-block mb-2 fw-bold ">بازه سنی خود را انتخاب کنید 
                 <span class="text-danger">*</span></label>
                 <div class="a-box d-flex justify-content-center gap-1">
@@ -88,7 +88,7 @@
 
             </div>
 
-            <div class="mb-4">
+            <div class="mb-4 shec-section">
                 <label class="d-block mb-2 fw-bold">برای کاشت مو چقدر قطعیت دارید؟</label>
                 <select name="confidence" class="form-select mx-auto" required style="padding: 10px;border: 1px solid #ff6600;">
                     <option value="">انتخاب کنید</option>    
@@ -140,7 +140,7 @@
 
         <!-- Step 3: Upload-->
         <div id="step-3" class="step d-none">
-            <div class="container-image">
+            <div class="container-image shec-section">
                 <label class="d-block mb-2 fw-bold ">لطفاً عکس‌هایی از موی سر خود، از زوایای مشخص‌شده بارگذاری کنید. (اختیاری)</label>
                 <div class="subheading0-image">چرا به این تصاویر نیاز داریم؟</div>
                 <div class="description-image" dir="rtl" style="text-align: right;line-height: 1.8">
@@ -167,7 +167,7 @@
         <!-- Step 4: concerns & medical -->
         <div id="step-4" class="step d-none">
             <form id="form-step-4">
-                <div class="mb-4">
+                <div class="mb-4 shec-section">
                     <label class="d-block mb-2 fw-bold">نگرانی و دغدغه اصلی شما برای انجام کاشت مو کدام است؟</label>
                     <select name="concern" class="form-select mx-auto" required style="padding: 10px;border: 1px solid #ff6600;">
                         <option value="">انتخاب کنید</option>    
@@ -178,7 +178,7 @@
                         <option value="هزینه برام خیلی مهمه.">هزینه برام خیلی مهمه.</option>
                     </select>
                 </div>
-                <label class="d-block mb-2 ">آیا به بیماری خاصی مبتلا هستید؟</label>
+                <label class="d-block mb-2 shec-section">آیا به بیماری خاصی مبتلا هستید؟</label>
                 <div class="toggle-group">
                     <label class="toggle-option">
                     <input type="radio" name="has_medical" value="yes" hidden>
@@ -191,7 +191,7 @@
                 </div>
 
                 <div id="medical-fields" class="d-none">
-                    <label class="d-block mb-2 ">بیماری‌های پوستی</label>
+                    <label class="d-block mb-2 shec-section">بیماری‌های پوستی</label>
                     <select name="scalp_conditions" class="form-select mx-auto" style="padding: 10px;border: 1px solid #ff6600;">
                         <option value="">انتخاب کنید</option>    
                         <option value="عفونت فعال پوست سر">عفونت فعال پوست سر</option>
@@ -202,7 +202,7 @@
                         <option value="آلوپسی به همراه اسکار">آلوپسی به همراه اسکار</option>
                         <option value="جای زخم (اسکار)">جای زخم (اسکار)</option>
                     </select>
-                    <label class="d-block mb-2 " style="margin:15px 0px;">سایر بیماری ها</label>
+                    <label class="d-block mb-2 shec-section" style="margin:15px 0px;">سایر بیماری ها</label>
                     <select name="other_conditions" class="form-select mx-auto" style="padding: 10px;border: 1px solid #ff6600;">
                         <option value="">انتخاب کنید</option>    
                         <option value="دیابت">دیابت</option>
@@ -214,7 +214,7 @@
                     </select>
                 </div>
 
-                <label class="d-block mb-2 ">آیا در حال حاضر داروی خاصی مصرف می‌کنید؟</label>
+                <label class="d-block mb-2 shec-section">آیا در حال حاضر داروی خاصی مصرف می‌کنید؟</label>
                 <div class="toggle-group">
                     <label class="toggle-option">
                     <input type="radio" name="has_meds" value="yes" hidden>
@@ -256,18 +256,18 @@
             </div>
             <form id="form-step-5">
                 <div class="container">
-                    <p class="d-block mb-2 fw-bold">نام و نام خانوادگی خود را وارد کنید</p>
+                    <p class="d-block mb-2 shec-section fw-bold">نام و نام خانوادگی خود را وارد کنید</p>
                     <div class="mt-1 d-flex gap-1 justify-content-between" style="padding:5px; margin-bottom:30px; border-bottom: 1px solid #CDCFCE;">
                         <input type="text" class="col-sm-12 col-md-6" name="first_name" placeholder="نام">
                         <input type="text" class="col-sm-12 col-md-6" name="last_name" placeholder="نام خانوادگی">
                     </div>
-                    <p class="d-block mb-2 fw-bold"> محل سکونت خود را انتخاب کنید</p>
+                    <p class="d-block mb-2 shec-section fw-bold"> محل سکونت خود را انتخاب کنید</p>
                     <div class="mt-1 d-flex gap-1 justify-content-between" style="padding:5px; margin-bottom:30px; ">
                         <input type="text" class="col-sm-12 col-md-6" name="state" placeholder="استان">
                         <input type="text" class="col-sm-12 col-md-6" name="city" placeholder="شهر">
                     </div>
 
-                    <p class="d-block mb-2 fw-bold">از چه طریق تمایل به دریافت مشاوره تخصصی دارید؟</p>
+                    <p class="d-block mb-2 shec-section fw-bold">از چه طریق تمایل به دریافت مشاوره تخصصی دارید؟</p>
                     <div class="mt-1 d-flex gap-1 justify-content-between" style="padding:5px; margin-bottom:30px; ">
                         <div class="toggle-group">
                             <label class="toggle-option">

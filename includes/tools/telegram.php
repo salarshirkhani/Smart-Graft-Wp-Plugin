@@ -193,3 +193,31 @@ function shec_admin_render_telegram_webhook_box() {
     }
     echo '</div>';
 }
+
+function shec_notify_admin_telegram($wp_user_id, $public_url) {
+    $token = get_option('shec_telegram_api', '');
+    $chat  = get_option('shec_admin_chat_id', '');
+    if (!$token || !$chat) return;
+
+    $data = shec_get_data($wp_user_id);
+    if (!$data) return;
+
+    $contact = $data['contact'] ?? [];
+    $name    = trim(($contact['first_name'] ?? '').' '.($contact['last_name'] ?? ''));
+    $mobile  = $data['mobile'] ?? ($contact['mobile'] ?? '');
+
+    $text = "📩 فرم جدید ارسال شد:\n\n".
+            "👤 نام: <b>".esc_html($name ?: '—')."</b>\n".
+            "📞 موبایل: <b>".esc_html($mobile ?: '—')."</b>\n".
+            "🔗 نتیجه کامل: {$public_url}";
+
+    wp_remote_post("https://api.telegram.org/bot{$token}/sendMessage", [
+        'headers' => ['Content-Type'=>'application/json'],
+        'body'    => wp_json_encode([
+            'chat_id' => $chat,
+            'text'    => $text,
+            'parse_mode' => 'HTML'
+        ], JSON_UNESCAPED_UNICODE),
+    ]);
+}
+

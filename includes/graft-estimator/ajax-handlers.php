@@ -730,7 +730,7 @@ if (!function_exists('shec_finalize')) {
     $pub = shec_public_link_issue($uid, 180);
 
     //TELEGRAM NOTIFY
-    shec_finalize_telegram_bridge($public_url, (int)$wp_user_id, $contact, $final);
+    shec_notify_admin_telegram($uid, $pub['url']);
 
     wp_send_json_success([
       'ai_result'       => wp_json_encode($final, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),

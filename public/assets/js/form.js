@@ -220,14 +220,20 @@ $(function () {
       uploadPositions[gender].forEach((label, index) => {
         const isLastFemale = (gender === 'female' && index === uploadPositions[gender].length - 1);
         const colClass = isLastFemale ? 'col-12' : 'col-12 col-lg-6';
+        const isFront = (label === 'روبرو');
         container.append(`
           <div class="${colClass}">
-            <label class="upload-box" data-index="${index}" data-position="${label}">
-              <span class="d-block fw-bold mb-2">${label}</span>
-              <input type="file" name="pic${index+1}" accept="image/*">
-              <div class="progress d-none"><div class="progress-bar" style="width:0%;"></div></div>
-              <img src="" class="thumbnail d-none">
-            </label>
+            <div class="upload-wrap${isFront ? ' shec-upload-front' : ''}" ${isFront ? 'data-pos="front"' : ''}>
+              <label class="upload-box" data-index="${index}" data-position="${label}">
+                <span class="d-block fw-bold mb-2">${label}</span>
+                <input type="file" name="pic${index+1}" accept="image/*">
+                <div class="progress d-none"><div class="progress-bar" style="width:0%;"></div></div>
+                <img src="" class="thumbnail d-none">
+              </label>
+              <div class="upload-overlay">
+                <button type="button" class="remove-btn" aria-label="حذف تصویر">🗑</button>
+              </div>
+            </div>
           </div>
         `);
       });
@@ -236,10 +242,15 @@ $(function () {
       const uploads = JSON.parse(LS.get('uploadedPics','{}'));
       for (const name in uploads) {
         const url = uploads[name];
-        const $box = $(`.upload-box input[name="${name}"]`).closest('.upload-box');
-        if ($box.length) {
-          $box.addClass('upload-success');
+        const $box  = $(`.upload-box input[name="${name}"]`).closest('.upload-box');
+        const $wrap = $box.closest('.upload-wrap');
+        if ($wrap.length) {
+          $wrap.addClass('upload-success');
           $box.find('.thumbnail').attr('src', url).removeClass('d-none');
+
+          if ($wrap.is('[data-pos="front"]')) {
+            try { localStorage.setItem('shec_front', url); } catch(e){}
+          }
         }
       }
     },
@@ -872,7 +883,43 @@ window.SHEC_renderFinal = function(fin){
     const i = Math.floor(Math.log(bytes)/Math.log(1024));
     return (bytes/Math.pow(1024,i)).toFixed( (i===0)?0:1 ) + ' ' + units[i];
   }
-  $('#form-step-3').on('submit', function(e){ e.preventDefault(); UI.goToStep(4); });
+
+  $('#form-step-3').on('submit', function(e){
+    e.preventDefault();
+    let frontUrl = null; try { frontUrl = localStorage.getItem('shec_front'); } catch(e){}
+    if (!frontUrl) {
+      if (window.toastr) toastr.error('لطفاً «تصویر روبه‌رو» را بارگذاری کنید.');
+      const $front = $('.upload-wrap.shec-upload-front');
+      $front.addClass('is-required-error');
+      if (!$front.find('.err-msg').length) $front.find('.upload-box').append('<div class="err-msg">تصویر روبه‌رو الزامی است</div>');
+      $('html,body').animate({scrollTop: $front.offset().top - 120}, 400);
+      return;
+    }
+    UI.goToStep(4);
+  });
+
+
+
+
+  // Upload handler
+  $(document).on('click', '.upload-overlay .remove-btn', function(e){
+  e.preventDefault(); e.stopPropagation();
+  const $wrap  = $(this).closest('.upload-wrap');
+  const $box   = $wrap.find('.upload-box');
+  const $img   = $box.find('.thumbnail');
+  const $input = $box.find('input[type="file"]')[0];
+  const name   = $input && $input.name;
+
+  try { const up = JSON.parse(LS.get('uploadedPics','{}')); if (name && up[name]) { delete up[name]; LS.set('uploadedPics', JSON.stringify(up)); } } catch(_){}
+  if ($wrap.is('[data-pos="front"]')) { try { localStorage.removeItem('shec_front'); } catch(_){} }
+
+  $img.addClass('d-none').attr('src','');
+  if ($input) $input.value = '';
+  $wrap.removeClass('upload-success'); // پیام خطا اگر لازم شد بعداً در submit اضافه می‌شود
+});
+
+
+
 
   $(document).on('change', '.upload-box input[type="file"]', function(){
     const fileInput = this;
@@ -915,26 +962,37 @@ window.SHEC_renderFinal = function(fin){
       if (res && res.success) {
         const fileUrl = (res.data && (res.data.file || res.data)) || res.file || res.url || '';
         if (fileUrl) {
+          const $wrap = $box.closest('.upload-wrap');
           $thumb.attr('src', fileUrl).removeClass('d-none');
-          $box.addClass('upload-success');
+          $wrap.addClass('upload-success');
+
           const uploads = JSON.parse(LS.get('uploadedPics','{}'));
           uploads[fileInput.name] = fileUrl;
           LS.set('uploadedPics', JSON.stringify(uploads));
+
+          if ($wrap.is('[data-pos="front"]')) {
+            try { localStorage.setItem('shec_front', fileUrl); } catch(e){}
+            $wrap.removeClass('is-required-error');       // این خط مهم است
+            $wrap.find('.err-msg').remove();
+          }
         }
-        $progress.addClass('d-none');
-        $bar.css('width','0%');
+        $progress.addClass('d-none'); $bar.css('width','0%');
       } else {
         toastr.error((res && res.message) || 'خطا در آپلود');
         $progress.addClass('d-none'); $bar.css('width','0%');
-        $thumb.addClass('d-none').attr('src',''); $box.removeClass('upload-success');
+        $thumb.addClass('d-none').attr('src','');
+        $box.closest('.upload-wrap').removeClass('upload-success');
         fileInput.value = '';
       }
     }).fail(function(){
       toastr.error('خطا در ارتباط آپلود');
       $progress.addClass('d-none'); $bar.css('width','0%');
-      $thumb.addClass('d-none').attr('src',''); $box.removeClass('upload-success');
+      $thumb.addClass('d-none').attr('src','');
+      $box.closest('.upload-wrap').removeClass('upload-success');
       fileInput.value = '';
     });
+
+
   });
 
   // Step 4 medical
@@ -1123,7 +1181,7 @@ window.SHEC_renderFinal = function(fin){
       toastr.error('خطا در ارتباط با سرور');
       $btn.prop('disabled', false);
     });
-    
+
 
   });
 
@@ -1339,5 +1397,16 @@ window.SHEC_renderFinal = function(fin){
     const savedGender = LS.get('gender') || 'male';
     UI.updateUploadHints(savedGender);
   })();
+
+    function animateSections(){
+      $('.shec-section').each(function(){
+        var top = this.getBoundingClientRect().top;
+        if (top < window.innerHeight - 50) {
+          $(this).addClass('visible');
+        }
+      });
+    }
+    $(window).on('scroll load', animateSections);
+    animateSections();
 
 });
