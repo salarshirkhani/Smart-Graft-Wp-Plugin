@@ -367,7 +367,7 @@ $(function () {
       if (!$('#final-step-loader').length) {
         UI.ensureLottieLoaded();
         const tpl = `
-          <div id="final-step-loader" class="ai-loader-overlay" style="display:none;">
+          <div id="final-step-loader" class="ai-loader-overlay bgl" style="display:none;">
             <div class="ai-loader-box">
               <dotlottie-wc
                 src="https://lottie.host/f6ee527c-625e-421f-b114-b95e703a33c5/UHdu4rKs9b.lottie"
@@ -386,7 +386,8 @@ $(function () {
       UI.ensureFinalLoaderDom();
       const $overlay = $('#final-step-loader');
       const $text    = $('#final-loader-text');
-
+      $('#form-step-5').addClass('ohide').removeClass('oshow');
+      $('#ai-questions-box').addClass('ohide').removeClass('oshow');
       UI.finalTimers.forEach(id => clearTimeout(id));
       UI.finalTimers = [];
 

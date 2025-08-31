@@ -291,10 +291,10 @@
 
 <!-- Step 6: Result -->
 <div id="step-6" class="step d-none">
-    <div id="final-loader" class="loader-overlay" style="display:none;">
+    <div id="final-loader" class="loader-overlay bgl" style="display:none;">
         <div class="ai-loader">
             <div class="ai-spinner-img ai-scale-img">
-            <img src="<?php echo $img_path . 'spinner.webp'; ?>" alt="loading" />
+                <img src="<?php echo $img_path . 'spinner.webp'; ?>" alt="loading" />
             </div>
             <div id="final-loader-text" class="ai-loader-text"></div>
         </div>
