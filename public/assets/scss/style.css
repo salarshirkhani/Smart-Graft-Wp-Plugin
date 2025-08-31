@@ -11981,6 +11981,16 @@ textarea.form-control-lg {
   font-style: normal;
   font-display: swap;
 }
+.oshow {
+  opacity: 1;
+  transition: all 0.8s ease;
+}
+
+.ohide {
+  opacity: 0;
+  transition: all 0.8s ease;
+}
+
 /* کانتینر پروپوزال: وسط‌چین اختیاری */
 #proposal-pdf-root {
   width: min(1080px, 96vw);
@@ -11998,7 +12008,6 @@ textarea.form-control-lg {
 .loader-overlay {
   position: fixed;
   inset: 0;
-  background: rgb(255, 255, 255);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12046,7 +12055,6 @@ toggle-group.error, #meds-fields.error, #medical-fields.error {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgb(255, 255, 255);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -12764,7 +12772,7 @@ select:focus {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgb(255, 255, 255);
+  background: linear-gradient(135deg, rgba(247, 247, 247, 0.88) 10%, rgba(255, 255, 255, 0.45) 90%);
   z-index: 9999;
   display: flex;
   align-items: center; /* وسط عمودی */

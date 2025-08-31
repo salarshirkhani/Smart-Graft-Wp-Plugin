@@ -292,7 +292,8 @@ $(function () {
       const $loader  = $('#step5-loader');
       const $content = $('#step5-content');
       let   $text    = $('#ai-loader-text');
-
+      $('#form-step-5').addClass('ohide').removeClass('oshow');
+      $('#ai-questions-box').addClass('ohide').removeClass('oshow');
       $content.hide();
       $loader.show();
 
@@ -332,6 +333,8 @@ $(function () {
       UI.__aiTimers = [];
       $('#step5-loader').fadeOut(300);
       $('#step5-content').fadeIn(200);
+      $('#form-step-5').addClass('oshow').removeClass('ohide');
+      $('#ai-questions-box').addClass('oshow').removeClass('ohide');
     },
     waitForAiOrTimeout(promise, minMs = 10000){
       const dfd = jQuery.Deferred();

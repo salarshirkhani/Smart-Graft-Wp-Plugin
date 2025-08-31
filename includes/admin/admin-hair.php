@@ -26,6 +26,24 @@ function shec_guess_step_progress(array $d){
     return $step;
 }
 
+function shec_sanitize_asst_id( $val ) {
+    $val = is_string($val) ? wp_unslash($val) : $val;
+    $val = trim($val);
+    return preg_replace('/[^A-Za-z0-9_\-\.]/', '', $val); // asst_xxx
+}
+
+/** =========================
+ *  Getters
+ * ========================= */
+function shec_openai_use_assistants(){
+    return (bool) get_option('shec_asst_enable', false);
+}
+function shec_openai_asst_qs_id(){
+    return trim((string) get_option('shec_asst_qs_id',''));
+}
+function shec_openai_asst_final_id(){
+    return trim((string) get_option('shec_asst_final_id',''));
+}
 
 /** =========================
  *  Enqueue admin assets (only our pages)
@@ -121,8 +139,6 @@ jQuery(function($){
 /** =========================
  *  Admin tabs + wrappers
  * ========================= */
-
-
 function shec_display_dashboard_stats() {
     global $wpdb;
 
@@ -141,36 +157,14 @@ function shec_display_dashboard_stats() {
     // نمایش باکس‌ها
     echo '<div class="shec-grid shec-dashboard-stats">';
 
-    // تعداد کل فرم‌های ارسال شده
-    echo '<div class="shec-card">';
-    echo '<h3>تعداد کل فرم‌های ارسال شده</h3>';
-    echo '<p>' . esc_html($total_forms) . '</p>';
-    echo '</div>';
+    echo '<div class="shec-card"><h3>تعداد کل فرم‌های ارسال شده</h3><p>' . esc_html($total_forms) . '</p></div>';
+    echo '<div class="shec-card"><h3>فرم‌های کامل شده</h3><p>' . esc_html($completed_forms) . '</p></div>';
+    echo '<div class="shec-card"><h3>شماره‌های جدید</h3><p>' . esc_html($new_numbers) . '</p></div>';
+    echo '<div class="shec-card"><h3>نرخ موفقیت</h3><p>' . esc_html(number_format($success_rate, 2)) . '%</p></div>';
 
-    // تعداد فرم‌های کامل شده
-    echo '<div class="shec-card">';
-    echo '<h3>فرم‌های کامل شده</h3>';
-    echo '<p>' . esc_html($completed_forms) . '</p>';
     echo '</div>';
-
-    // شماره‌های جدید
-    echo '<div class="shec-card">';
-    echo '<h3>شماره‌های جدید</h3>';
-    echo '<p>' . esc_html($new_numbers) . '</p>';
-    echo '</div>';
-
-    // نرخ موفقیت
-    echo '<div class="shec-card">';
-    echo '<h3>نرخ موفقیت</h3>';
-    echo '<p>' . esc_html(number_format($success_rate, 2)) . '%</p>';
-    echo '</div>';
-
-    echo '</div>'; // پایان shec-grid
 }
-
-// فراخوانی این تابع در صفحه مناسب
 add_action('shec_display_data', 'shec_display_dashboard_stats', 10);
-
 
 function shec_admin_tabs($active = 'data') {
     $base = admin_url('admin.php');
@@ -196,12 +190,6 @@ function shec_admin_wrap_close() { echo '</div></div>'; }
 
 /** =========================
  *  Progress detector (0..6)
- *  1: gender+age+mobile
- *  2: + loss_pattern
- *  3: + uploads (>=1)
- *  4: + medical(has_medical & has_meds set)
- *  5: + contact(first_name,last_name,state,city,social)
- *  6: + ai.final exists
  * ========================= */
 function shec_detect_progress(array $d) {
     $step = 0;
@@ -243,53 +231,24 @@ add_action('admin_menu', function () {
 function shec_display_data() {
     global $wpdb;
 
-    // نزولی بر اساس آیدی
     $rows = $wpdb->get_results("SELECT id, data FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"contact\"%' ORDER BY id DESC");
 
     shec_admin_wrap_open('data', 'داده‌های فرم هوشمند فخرایی');
 
-        // تعداد کل فرم‌های ارسال شده
-    $total_forms = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users");
+    // کارت‌های آمار
+    $total_forms   = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users");
+    $completed     = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"contact\"%'");
+    $new_numbers   = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"mobile\"%'");
+    $success_rate  = ($total_forms > 0) ? ($completed / $total_forms) * 100 : 0;
 
-    // تعداد فرم‌های کامل
-    $completed_forms = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"contact\"%'");
-
-    // شماره‌های جدید (کاربرانی که در ابتدا ثبت‌نام کردند)
-    $new_numbers = $wpdb->get_var("SELECT COUNT(id) FROM {$wpdb->prefix}shec_users WHERE data LIKE '%\"mobile\"%'");
-
-    // نرخ موفقیت (تعداد فرم‌های کامل / تعداد کل فرم‌ها)
-    $success_rate = ($total_forms > 0) ? ($completed_forms / $total_forms) * 100 : 0;
-
-    // نمایش باکس‌ها
     echo '<div class="shec-grid shec-dashboard-stats">';
-
-    // تعداد کل فرم‌های ارسال شده
-    echo '<div class="shec-card">';
-    echo '<h3>تعداد کل فرم‌های ارسال شده</h3>';
-    echo '<p>' . esc_html($total_forms) . '</p>';
+    echo '<div class="shec-card"><h3>تعداد کل فرم‌های ارسال شده</h3><p>'.esc_html($total_forms).'</p></div>';
+    echo '<div class="shec-card"><h3>فرم‌های کامل شده</h3><p>'.esc_html($completed).'</p></div>';
+    echo '<div class="shec-card"><h3>شماره‌های جدید</h3><p>'.esc_html($new_numbers).'</p></div>';
+    echo '<div class="shec-card"><h3>نرخ موفقیت</h3><p>'.esc_html(number_format($success_rate, 2)).'%</p></div>';
     echo '</div>';
 
-    // تعداد فرم‌های کامل شده
-    echo '<div class="shec-card">';
-    echo '<h3>فرم‌های کامل شده</h3>';
-    echo '<p>' . esc_html($completed_forms) . '</p>';
-    echo '</div>';
-
-    // شماره‌های جدید
-    echo '<div class="shec-card">';
-    echo '<h3>شماره‌های جدید</h3>';
-    echo '<p>' . esc_html($new_numbers) . '</p>';
-    echo '</div>';
-
-    // نرخ موفقیت
-    echo '<div class="shec-card">';
-    echo '<h3>نرخ موفقیت</h3>';
-    echo '<p>' . esc_html(number_format($success_rate, 2)) . '%</p>';
-    echo '</div>';
-
-    echo '</div>'; // پایان shec-grid
-
-    // جدول با ستون‌های دقیقاً مشخص‌شده
+    // جدول
     echo '<table id="shec-data-table" class="display shec-table" style="width:100%; text-align:right; direction:rtl; float:right;">';
     echo '  <thead>
               <tr style="text-align:right;">
@@ -330,7 +289,6 @@ function shec_display_data() {
 
     echo '  </tbody></table>';
 
-    // DataTables init (مرتب‌سازی روی ستون # که حالا ایندکسش 1 است)
     ?>
     <script>
     jQuery(function($){
@@ -353,8 +311,6 @@ function shec_display_data() {
     shec_admin_wrap_close();
 }
 
-
-
 /** =========================
  *  Detail page
  * ========================= */
@@ -366,7 +322,6 @@ function shec_display_user_details() {
 
   if (!$user_id) { echo '<p>اطلاعات کاربر پیدا نشد.</p>'; shec_admin_wrap_close(); return; }
 
-  // ردیف دیتابیس (id=کلید جدول)
   $table = $wpdb->prefix . 'shec_users';
   $row   = $wpdb->get_row( $wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $user_id) );
   if (!$row) { echo '<p>اطلاعات کاربر پیدا نشد.</p>'; shec_admin_wrap_close(); return; }
@@ -403,7 +358,7 @@ function shec_display_user_details() {
     return date_i18n( get_option('date_format').' H:i', is_numeric($ts) ? (int)$ts : strtotime($ts) );
   };
 
-  // تاریخ/ساعت: اولویت با ستون‌های جدول، بعد تایم‌استمپ‌های AI
+  // تاریخ/ساعت
   $created_at = $row->created_at ?? ($row->inserted_at ?? null);
   if (!$created_at) {
     $created_at = $d['ai']['final']['generated_at'] ?? ($d['ai']['followups']['generated_at'] ?? null);
@@ -424,10 +379,9 @@ function shec_display_user_details() {
   $stage    = $stageFromPattern($pattern);
   $graftTbl = $graftByTable($gender, $stage);
 
-  // آپلودها (با عنوان پوزیشن)
   $uploads = $d['uploads'] ?? [];
 
-  // سؤالات/پاسخ‌ها ذخیره‌شده
+  // سؤالات/پاسخ‌ها
   $fu      = $d['ai']['followups'] ?? [];
   $qaList  = [];
   if (!empty($fu['qa']) && is_array($fu['qa'])) {
@@ -437,7 +391,7 @@ function shec_display_user_details() {
     foreach ($fu['questions'] as $i=>$q) { $qaList[] = ['q'=>$q, 'a'=>$ans[$i] ?? '']; }
   }
 
-  // خروجی AI (سازگار با قدیمی/جدید)
+  // خروجی AI
   $final     = $d['ai']['final'] ?? [];
   $method    = $final['method'] ?? '';
   $graft_ai  = $final['graft_count'] ?? '';
@@ -445,10 +399,10 @@ function shec_display_user_details() {
 
   $concern_box = $final['concern_box'] ?? '';
   $pat_ex      = is_array($final['pattern_explain'] ?? null) ? $final['pattern_explain'] : [];
-  $fu_ai       = is_array($final['followups'] ?? null) ? $final['followups'] : []; // [{q,a,coach/tip}]
+  $fu_ai       = is_array($final['followups'] ?? null) ? $final['followups'] : [];
   $fu_sum      = $final['followup_summary'] ?? '';
 
-  // نقشهٔ Q/A ← کامنت AI (برای نمایش کنار هر سؤال)
+  // نقشهٔ Q/A ← کامنت AI
   $aiCoachMap = [];
   foreach ($fu_ai as $item) {
     $q = trim((string)($item['q'] ?? ''));
@@ -456,7 +410,7 @@ function shec_display_user_details() {
     $aiCoachMap[$q] = trim((string)($item['coach'] ?? $item['tip'] ?? ''));
   }
 
-  // استایل مختصر مخصوص همین صفحه
+  // استایل مختصر
   echo '<style>
     .shec-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}
     .shec-card{background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:14px}
@@ -516,7 +470,7 @@ function shec_display_user_details() {
     echo '<div class="shec-card">هیچ تصویری برای این کاربر آپلود نشده است.</div>';
   }
 
-  // توضیح الگو + پاسخ به دغدغه
+  // توضیح الگو + دغدغه
   if ($concern_box || $pat_ex) {
     echo '<h3 class="shec-title">توضیح هوش مصنوعی (الگو و دغدغه)</h3>';
     echo '<div class="shec-grid">';
@@ -538,7 +492,7 @@ function shec_display_user_details() {
     echo '</div>';
   }
 
-  // آمار کوتاه (روش/گرافت)
+  // جمع‌بندی درمانی
   echo '<h3 class="shec-title">جمع‌بندی درمانی</h3>';
   echo '<div class="shec-stats">';
   echo '  <div class="shec-stat"><div class="label">روش پیشنهادی</div><div class="val">'. $esc($method ?: '—') .'</div></div>';
@@ -550,7 +504,7 @@ function shec_display_user_details() {
     echo '<div class="shec-card" style="margin-top:10px"><div class="shec-badge" style="margin-bottom:6px"><b>تحلیل AI:</b></div><div>'. $esc($analysis) .'</div></div>';
   }
 
-  // سؤالات/پاسخ‌ها + یادداشت AI برای هر سؤال
+  // سؤالات پیگیری
   echo '<h3 class="shec-title">سؤالات پیگیری و پاسخ‌های کاربر</h3>';
   if ($qaList) {
     echo '<ol class="shec-qa">';
@@ -571,7 +525,7 @@ function shec_display_user_details() {
     echo '<div class="shec-card">—</div>';
   }
 
-  // خلاصهٔ جمع‌بندی از پاسخ‌ها (اختیاری)
+  // خلاصهٔ جمع‌بندی پاسخ‌ها
   if ($fu_sum) {
     echo '<h3 class="shec-title">جمع‌بندی پاسخ‌ها و توصیه‌های اختصاصی</h3>';
     echo '<div class="shec-card shec-note">'. $esc($fu_sum) .'</div>';
@@ -580,14 +534,12 @@ function shec_display_user_details() {
   shec_admin_wrap_close();
 }
 
-
 /** =========================
  *  Settings page
  * ========================= */
 function shec_display_settings() {
     $tg_msg = ''; // پیام وضعیت وبهوک
-    
-    
+
     //TEST TELEGRAM
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shec_test_telegram'])) {
         $token = get_option('shec_telegram_api', '');
@@ -610,7 +562,6 @@ function shec_display_settings() {
         }
     }
 
-
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // ذخیره تنظیمات
         if (isset($_POST['shec_api_key']))          update_option('shec_api_key',          sanitize_text_field($_POST['shec_api_key']));
@@ -620,6 +571,9 @@ function shec_display_settings() {
         if (isset($_POST['shec_tg_secret']))        update_option('shec_tg_secret',        sanitize_text_field($_POST['shec_tg_secret']));
         if (isset($_POST['shec_prompt_questions'])) update_option('shec_prompt_questions', shec_sanitize_prompt_text($_POST['shec_prompt_questions']));
         if (isset($_POST['shec_prompt_final']))     update_option('shec_prompt_final',     shec_sanitize_prompt_text($_POST['shec_prompt_final']));
+        // Assistants
+        update_option('shec_asst_enable',   isset($_POST['shec_asst_enable']) ? 1 : 0);
+        if (isset($_POST['shec_asst_final_id'])) update_option('shec_asst_final_id', shec_sanitize_asst_id($_POST['shec_asst_final_id']));
 
         // اکشن‌های وبهوک (در همان فرم)
         if (isset($_POST['shec_action'])) {
@@ -653,7 +607,9 @@ function shec_display_settings() {
     }
 
     // مقادیر فعلی
-    $api_key  = get_option('shec_api_key', '');
+    $api_key       = get_option('shec_api_key', '');
+    $asst_enable   = (bool) get_option('shec_asst_enable', 0);
+    $asst_final_id = get_option('shec_asst_final_id', '');
     $sms_api  = get_option('shec_sms_api', '');
     $admin_id = get_option('shec_admin_chat_id', '');
     $telegram = get_option('shec_telegram_api', '');
@@ -667,12 +623,46 @@ function shec_display_settings() {
 
     echo '<form method="POST" class="shec-form" id="shec-settings-form">';
 
-    echo '<div class="shec-field"><label>API Key (OpenAI)</label>
-          <input type="text" name="shec_api_key" value="'.esc_attr($api_key).'" /></div>';
-
+    // --- SMS ---
+    echo '<h3 class="shec-title" style="margin:10px 0 10px;">تنظیمات پیامک</h3>';
     echo '<div class="shec-field"><label>پنل SMS</label>
           <input type="text" name="shec_sms_api" value="'.esc_attr($sms_api).'" /></div>';
 
+    echo '<div class="shec-field">
+        <button type="button" id="shec-sms-test-btn" class="button">ارسال پیام تست پیامک</button>
+        <span class="shec-help">برای تست، شمارهٔ گیرنده را از شما می‌پرسد و «سلام دنیا» ارسال می‌شود.</span>
+      </div>';
+    ?>
+    <script>
+    (function(){
+      const btn = document.getElementById('shec-sms-test-btn');
+      if(!btn) return;
+      btn.addEventListener('click', function(){
+        const to = prompt('شماره گیرنده برای تست SMS را وارد کنید (مثل 09xxxxxxxxx)');
+        if(!to) return;
+        btn.disabled = true;
+        fetch(ajaxurl, {
+          method: 'POST',
+          headers: {'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},
+          body: 'action=shec_sms_test&_wpnonce=<?php echo wp_create_nonce('shec_nonce'); ?>&to='+encodeURIComponent(to)
+        }).then(r=>r.json()).then(j=>{
+          btn.disabled = false;
+          if(j && j.success){
+            alert('✅ پیامک ارسال شد.');
+          }else{
+            const msg = (j && j.data && j.data.message) ? j.data.message : 'خطای نامشخص';
+            alert('❌ خطا در ارسال: ' + msg);
+          }
+        }).catch(()=>{
+          btn.disabled = false;
+          alert('❌ خطا در ارتباط با سرور');
+        });
+      });
+    })();
+    </script>
+    <?php
+
+    // --- Telegram ---
     echo '<h3 class="shec-title" style="margin:30px 0 10px;">تنظیمات تلگرام</h3>';
 
     echo '<div class="shec-field"><label>ربات تلگرام (توکن)</label>
@@ -680,19 +670,53 @@ function shec_display_settings() {
 
     echo '<div class="shec-field"><label>Chat ID ادمین</label>
           <input type="text" name="shec_admin_chat_id" value="'.esc_attr($admin_id).'" /></div>';
-          
+
     echo '<div class="shec-actions" style="margin-top:10px">';
     echo '<button type="submit" name="shec_test_telegram" value="1" class="button button-secondary">📨 ارسال پیام تست تلگرام</button>';
     echo '</div>';
 
-
-    // باکس وبهوک (دکمه‌ها submit همین فرم هستند)
-    shec_admin_render_telegram_webhook_box();
+    // وبهوک تلگرام
+    if (function_exists('shec_admin_render_telegram_webhook_box')) {
+        shec_admin_render_telegram_webhook_box();
+    }
 
     echo '<hr class="shec-sep"/>';
 
-    echo '<h3 class="shec-title">تنظیمات پرامپت</h3>';
+    // --- OpenAI ---
+    echo '<h3 class="shec-title" style="margin:30px 0 10px;">تنظیمات OPENAI</h3>';
 
+    echo '<div class="shec-field" style="margin:30px 0 10px;"><label>API Key (OpenAI)</label>
+          <input type="text" name="shec_api_key" value="'.esc_attr($api_key).'" /></div>';
+
+    // Assistants UI
+    echo '<div class="shec-field">';
+    echo '  <label style="display:flex;align-items:center;gap:8px">';
+    echo '      <input type="checkbox" name="shec_asst_enable" id="shec_asst_enable" '. checked($asst_enable, true, false) .' />';
+    echo '      استفاده از Assistant برای خروجی نهایی (Step 5)';
+    echo '  </label>';
+    echo '  <div class="shec-help">توجه: برای <b>سؤالات</b> (Step 4) از Assistant استفاده نمی‌شود؛ فقط برای پاسخ نهایی در Step 5 در صورت فعال‌بودن.</div>';
+    echo '</div>';
+
+    echo '<div class="shec-field" id="shec_asst_final_wrap" style="'. ($asst_enable ? '' : 'display:none;') .'">';
+    echo '  <label>Assistant ID (Final) — مثل: <code>asst_abc123...</code></label>';
+    echo '  <input type="text" name="shec_asst_final_id" value="'. esc_attr($asst_final_id) .'" />';
+    echo '  <div class="shec-help">Assistant شما باید طوری پیکربندی شود که فقط JSON معتبر برگرداند.</div>';
+    echo '</div>';
+
+    ?>
+    <script>
+    (function(){
+      const chk = document.getElementById('shec_asst_enable');
+      const wrap = document.getElementById('shec_asst_final_wrap');
+      if (chk && wrap) {
+        const sync = ()=> wrap.style.display = chk.checked ? '' : 'none';
+        chk.addEventListener('change', sync); sync();
+      }
+    })();
+    </script>
+    <?php
+
+    // Prompts
     echo '<div class="shec-field"><label>پرامپت سؤالات (بعد از استپ ۴)</label>
           <p class="shec-help">از <code>{{SUMMARY_JSON}}</code> استفاده کن. خروجی باید دقیقاً JSON با کلید <code>questions</code> و ۴ سؤال باشد.</p>
           <textarea style="width:100%;" name="shec_prompt_questions" rows="14">'.esc_textarea($p_q).'</textarea>
@@ -702,7 +726,7 @@ function shec_display_settings() {
           </div>';
 
     echo '<div class="shec-field"><label>پرامپت نهایی (استپ ۵)</label>
-          <p class="shec-help">از <code>{{PACK_JSON}}</code> استفاده کن. خروجی باید JSON با کلیدهای <code>method</code>، <code>graft_count</code>، <code>analysis</code> باشد.</p>
+          <p class="shec-help">از <code>{{PACK_JSON}}</code> استفاده کن. خروجی باید JSON با کلیدهای <code>method</code>، <code>graft_count</code>، <code>analysis</code> و ... باشد.</p>
           <textarea style="width:100%;" name="shec_prompt_final" rows="14">'.esc_textarea($p_f).'</textarea>
           <div class="shec-actions">
             <button type="button" class="button" data-restore="final">بازگردانی پیش‌فرض</button>
@@ -712,7 +736,6 @@ function shec_display_settings() {
     echo '<p><input type="submit" value="ذخیره" class="button button-primary" /></p>';
     echo '</form>';
 
-    // JS کوچک همانی که قبلاً داشتی
     ?>
     <script>
     (function(){
@@ -746,7 +769,6 @@ function shec_display_settings() {
 
     shec_admin_wrap_close();
 }
-
 
 /** =========================
  *  Restore default prompts (AJAX)

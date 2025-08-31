@@ -198,3 +198,4 @@ require_once SHEC_PATH . 'includes/helpers.php';
 require_once SHEC_PATH . 'includes/graft-estimator/ajax-handlers.php';
 require_once SHEC_PATH . 'includes/admin/admin-hair.php';
 require_once SHEC_PATH . 'includes/tools/telegram.php';
+require_once SHEC_PATH . 'includes/tools/sms.php';

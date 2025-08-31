@@ -251,10 +251,10 @@
                 <div id="ai-loader-text" class="ai-loader-text"></div>
             </div>
             </div>
-            <div id="ai-questions-box" class="mb-4" style="display:none">
+            <div id="ai-questions-box" class="mb-4 oshow" style="display:none">
                 <div id="ai-questions-list"></div>
             </div>
-            <form id="form-step-5">
+            <form id="form-step-5" class="oshow">
                 <div class="container">
                     <p class="d-block mb-2 shec-section fw-bold">نام و نام خانوادگی خود را وارد کنید</p>
                     <div class="mt-1 d-flex gap-1 justify-content-between" style="padding:5px; margin-bottom:30px; border-bottom: 1px solid #CDCFCE;">

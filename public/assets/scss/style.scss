@@ -771,7 +771,7 @@ select{
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255,255,255);
+  background: linear-gradient(135deg, rgba(247, 247, 247, 0.88) 10%, rgba(255, 255, 255, 0.45) 90%);
   z-index: 9999;
   display: flex;
   align-items: center;   /* وسط عمودی */
@@ -1386,4 +1386,3 @@ option {
 }
 .upload-wrap.upload-success:hover .upload-overlay{ opacity:1; pointer-events:auto }
 .remove-btn{ border:0; border-radius:999px; padding:10px 12px; background:#ef4444; color:#fff; font-size:18px; cursor:pointer }
-
