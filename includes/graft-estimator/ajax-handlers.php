@@ -8,6 +8,16 @@ if (!defined('ABSPATH')) exit;
 /* ---------------------------------
  * Helpers (guarded)
  * --------------------------------- */
+// helper: safe logger
+if (!function_exists('shec_log')) {
+  function shec_log($label, $data=null){
+    if (!defined('WP_DEBUG') || !WP_DEBUG) return;
+    $txt = is_string($data) ? $data : wp_json_encode($data, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
+    error_log("[SHEC] {$label}: " . $txt);
+  }
+}
+
+
 if (!function_exists('shec_table')) {
   function shec_table(){ global $wpdb; return $wpdb->prefix.'shec_users'; }
 }
@@ -570,6 +580,8 @@ if (!function_exists('shec_public_link_issue')) {
 }
 
 
+
+
 /* ---------------------------------
  * Dynamic prompts (guarded)
  * --------------------------------- */
@@ -762,6 +774,7 @@ add_action('wp_ajax_nopriv_shec_step3','shec_handle_step3');
 /* ---------------------------------
  * STEP 4 (medical)
  * --------------------------------- */
+
 if (!function_exists('shec_handle_step4')) {
   function shec_handle_step4(){
     shec_check_nonce_or_bypass();
@@ -1011,69 +1024,150 @@ add_action('wp_ajax_nopriv_shec_ai_questions', 'shec_ai_questions');
 /* ---------------------------------
  * FINALIZE (store answers + final + token)
  * --------------------------------- */
+
+
+/* --------------------------------------------
+ *  Lightweight logger (writes to PHP error_log)
+ *  فعال فقط وقتی WP_DEBUG=true باشد
+ * -------------------------------------------- */
+if (!function_exists('shec_log')) {
+  function shec_log($label, $data = null) {
+    if (!defined('WP_DEBUG') || !WP_DEBUG) return;
+    if (is_string($data)) {
+      $txt = $data;
+    } else {
+      $txt = wp_json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+    error_log("[SHEC] {$label}: {$txt}");
+  }
+}
+
+/* --------------------------------------------
+ *  Fallback امن برای pattern_explain
+ *  اگر AI خالی/ناقص برگرداند، این تابع آن را کامل می‌کند
+ * -------------------------------------------- */
+if (!function_exists('shec_fix_pattern_explain')) {
+  function shec_fix_pattern_explain($pe, $gender, $patternVal) {
+    $pe     = (is_array($pe) ? $pe : []);
+    $gender = strtolower($gender ?: 'male');
+
+    // استخراج stage از pattern-1..6
+    $stage = 0;
+    if (preg_match('~pattern[-_\s]?(\d+)~i', (string)$patternVal, $m)) {
+      $stage = max(1, min(6, intval($m[1])));
+    }
+
+    if ($gender === 'female') {
+      $label = ($stage <= 2) ? 'Ludwig I' : (($stage <= 4) ? 'Ludwig II' : 'Ludwig III');
+      $fb = [
+        'label'       => $label,
+        'what_it_is'  => 'الگوی کم‌پشتی منتشر در ناحیهٔ مرکزی سر که با پیشرفت، وسعت بیشتری می‌گیرد.',
+        'why_happens' => 'عوامل هورمونی و ژنتیکی؛ استرس و سبک زندگی نیز اثرگذارند.',
+        'fit_ok'      => true,
+        'note'        => ($label === 'Ludwig I') ? 'در این مرحله معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود.' : '',
+      ];
+    } else {
+      $lbl = $stage ? ('Norwood ' . $stage) : 'Norwood';
+      $fb = [
+        'label'       => $lbl,
+        'what_it_is'  => ($stage >= 5) ? 'درگیری جلوی سر و ورتکس با باریک‌شدن پل میانی.' : 'عقب‌نشینی خط جلویی یا کم‌پشتی موضعی با روند پیشرونده.',
+        'why_happens' => 'ژنتیک و حساسیت فولیکول‌ها به آندروژن‌ها؛ استرس و سبک زندگی می‌تواند شدت را تغییر دهد.',
+        'fit_ok'      => true,
+        'note'        => ($stage === 1) ? 'در این مرحله معمولاً کاشت لازم نیست و درمان نگه‌دارنده پیشنهاد می‌شود.' : '',
+      ];
+    }
+
+    // فقط مقادیر واقعاً غیرخالی AI را نگه می‌داریم؛ بقیه با fallback پر می‌شود
+    $out = [
+      'label'       => (isset($pe['label'])       && trim((string)$pe['label'])       !== '') ? trim((string)$pe['label'])       : $fb['label'],
+      'what_it_is'  => (isset($pe['what_it_is'])   && trim((string)$pe['what_it_is'])   !== '') ? trim((string)$pe['what_it_is'])  : $fb['what_it_is'],
+      'why_happens' => (isset($pe['why_happens'])  && trim((string)$pe['why_happens'])  !== '') ? trim((string)$pe['why_happens']) : $fb['why_happens'],
+      'fit_ok'      => array_key_exists('fit_ok', $pe) ? (bool)$pe['fit_ok'] : $fb['fit_ok'],
+      'note'        => (isset($pe['note'])         && trim((string)$pe['note'])         !== '') ? trim((string)$pe['note'])        : $fb['note'],
+    ];
+    return $out;
+
+  }
+}
+
+/* --------------------------------------------
+ *  shec_finalize (نسخه تمیز + لاگ‌دار)
+ * -------------------------------------------- */
 if (!function_exists('shec_finalize')) {
-  function shec_finalize(){
+  function shec_finalize() {
     shec_check_nonce_or_bypass();
 
+    // 1) ورودی اولیه
     $uid = intval($_POST['user_id'] ?? 0);
-    if ($uid<=0) wp_send_json_error(['message'=>'کاربر معتبر نیست']);
+    if ($uid <= 0) wp_send_json_error(['message' => 'کاربر معتبر نیست']);
 
     $answers = (isset($_POST['answers']) && is_array($_POST['answers'])) ? array_values($_POST['answers']) : [];
 
+    // 2) داده‌های قبلی کاربر
     $data = shec_get_data($uid);
-    if (!$data) wp_send_json_error(['message'=>'داده‌ای برای این کاربر پیدا نشد']);
+    if (!$data) wp_send_json_error(['message' => 'داده‌ای برای این کاربر پیدا نشد']);
 
+    // 3) اتصال پاسخ‌های مرحلهٔ ۵ به questions ذخیره‌شده
     $questions = $data['ai']['followups']['questions'] ?? [];
     $qa = [];
-    for ($i=0; $i<count($questions); $i++) {
-      $qa[] = ['q'=>(string)$questions[$i], 'a'=>(string)($answers[$i] ?? '')];
+    for ($i = 0; $i < count($questions); $i++) {
+      $qa[] = [
+        'q' => (string)$questions[$i],
+        'a' => (string)($answers[$i] ?? '')
+      ];
     }
 
-    if (!isset($data['ai'])) $data['ai'] = [];
-    if (!isset($data['ai']['followups'])) $data['ai']['followups'] = [];
-    $data['ai']['followups']['qa']       = $qa;
-    $data['ai']['followups']['answers']  = $answers;
+    // 4) ذخیرهٔ QA در پروفایل
+    if (!isset($data['ai']))                 $data['ai'] = [];
+    if (!isset($data['ai']['followups']))    $data['ai']['followups'] = [];
+    $data['ai']['followups']['qa']           = $qa;
+    $data['ai']['followups']['answers']      = $answers;
     $data['ai']['followups']['generated_at'] = time();
     shec_update_data($uid, $data);
 
+    // 5) بستهٔ ورودی برای پرامپت نهایی
     $pack = [
-      'gender'       => $data['gender'] ?? null,
-      'age'          => $data['age'] ?? null,
+      'gender'       => $data['gender']       ?? null,
+      'age'          => $data['age']          ?? null,
       'loss_pattern' => $data['loss_pattern'] ?? null,
-      'medical'      => $data['medical'] ?? null,
+      'medical'      => $data['medical']      ?? null,
       'uploads'      => array_values($data['uploads'] ?? []),
       'followups'    => $qa,
-      'contact'      => $data['contact'] ?? null,
-      'mobile'       => $data['mobile'] ?? null,
+      'contact'      => $data['contact']      ?? null,
+      'mobile'       => $data['mobile']       ?? null,
     ];
+    $pack_json = wp_json_encode($pack, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    shec_log('finalize:prompt_input_pack', $pack);
 
-    // پرامپت نهایی از تنظیمات + تزریق PACK_JSON
-    $prompt_user = shec_render_template(shec_get_prompt_final(), ['PACK_JSON' => $pack]);
+    // 6) پرامپت نهایی (ترجیح: تزریق JSON رشته‌ای)
+    $prompt_tpl  = shec_get_prompt_final();
+    $prompt_user = shec_render_template($prompt_tpl, ['PACK_JSON' => $pack_json]);
+    shec_log('finalize:prompt_user', $prompt_user);
 
-    // ------------- AI CALL (Assistants یا Chat) -------------
-    $api_key   = shec_openai_api_key();
-    $use_asst  = (int) get_option('shec_asst_enable', 0) === 1;
-    $asst_id   = trim((string) get_option('shec_asst_final_id', ''));
-    $resp      = ['ok'=>false,'content'=>'','http_code'=>0,'error'=>null];
+    // 7) تماس با AI
+    $api_key  = shec_openai_api_key();
+    $use_asst = (int)get_option('shec_asst_enable', 0) === 1;
+    $asst_id  = trim((string)get_option('shec_asst_final_id', ''));
+    $resp     = ['ok' => false, 'content' => '', 'http_code' => 0, 'error' => null];
 
     if ($use_asst && $asst_id && $api_key && function_exists('shec_openai_assistant_run')) {
       $resp = shec_openai_assistant_run($asst_id, $prompt_user, 60);
     } else {
       $messages = [
-        ['role'=>'system','content'=>'فقط و فقط یک شیء JSON معتبر مطابق دستور برگردان. کلیدها حذف نشوند؛ متن اضافه و مارک‌داون ممنوع.'],
-        ['role'=>'user','content'=>$prompt_user],
+        ['role' => 'system', 'content' => 'فقط و فقط یک شیء JSON معتبر مطابق دستور برگردان. کلیدها حذف نشوند؛ متن اضافه و مارک‌داون ممنوع.'],
+        ['role' => 'user',   'content' => $prompt_user],
       ];
       $chat_opts = [
-        'model' => 'gpt-4o-mini',
-        'temperature' => 0.3,
-        'json_schema' => shec_json_schema_final(),
-        'schema_name' => 'SmartHairCalc'
+        'model'        => 'gpt-4o-mini',
+        'temperature'  => 0.3,
+        'json_schema'  => shec_json_schema_final(),
+        'schema_name'  => 'SmartHairCalc',
       ];
       $resp = shec_openai_chat($messages, $chat_opts);
     }
-    // ------------- END AI CALL -------------
+    shec_log('finalize:ai_raw_response', $resp);
 
-    // پیش‌فرض امن
+    // 8) پیش‌فرض امن اولیه
     $final = [
       'method'           => 'FIT',
       'graft_count'      => 0,
@@ -1086,64 +1180,85 @@ if (!function_exists('shec_finalize')) {
         'fit_ok'      => true,
         'note'        => ''
       ],
-      'followups'        => [],   // بعداً نرمال‌سازی می‌کنیم
+      'followups'        => [],
       'pre_op'           => [],
       'post_op'          => [],
       'followup_summary' => '',
     ];
 
+    // 9) اگر AI اوکی بود، محتوا را مرج کن
     if (!empty($resp['ok'])) {
       $parsed = shec_json_decode_safe($resp['content']);
+      shec_log('finalize:ai_decoded', $parsed);
+
       if (is_array($parsed)) {
         foreach (['method','graft_count','analysis','concern_box','pattern_explain','followups','followup_summary','pre_op','post_op'] as $k) {
-          if (isset($parsed[$k])) $final[$k] = $parsed[$k];
+          if (array_key_exists($k, $parsed)) $final[$k] = $parsed[$k];
         }
       }
     } else if (($resp['http_code'] ?? 0) == 429) {
       shec_set_rate_limit_block(180);
     }
 
-    // enforce مقادیر حساس
+    // 10) سخت‌گیری روی مقادیر حساس + پر کردن pattern_explain
     $final['method'] = 'FIT';
     if (!isset($final['graft_count']) || !is_numeric($final['graft_count'])) $final['graft_count'] = 0;
     if (!is_array($final['pattern_explain'])) {
       $final['pattern_explain'] = ['label'=>'','what_it_is'=>'','why_happens'=>'','fit_ok'=>true,'note'=>''];
     }
-    if (!isset($final['pre_op']) || !is_array($final['pre_op']))   $final['pre_op']  = [];
+
+    // ← این خط تضمین می‌کند هرگز خالی برنگردد
+    $final['pattern_explain'] = shec_fix_pattern_explain(
+      $final['pattern_explain'],
+      $data['gender']       ?? 'male',
+      $data['loss_pattern'] ?? ''
+    );
+
+    if (!isset($final['pre_op'])  || !is_array($final['pre_op']))  $final['pre_op']  = [];
     if (!isset($final['post_op']) || !is_array($final['post_op'])) $final['post_op'] = [];
 
-    // ✨ نرمال‌سازی followups به فرم دقیق UI (q, a_label, ai_tip)
-    $final['followups'] = shec_normalize_followups_for_ui($qa, is_array($final['followups'] ?? null) ? $final['followups'] : []);
+    // نرمال‌سازی followups به فرم UI
+    $final['followups'] = shec_normalize_followups_for_ui(
+      $qa,
+      (is_array($final['followups'] ?? null) ? $final['followups'] : [])
+    );
 
-    // محدودیت تعداد آیتم‌ها
+    // سقف آیتم‌ها
     if (count($final['pre_op'])  > 3) $final['pre_op']  = array_slice($final['pre_op'],  0, 3);
     if (count($final['post_op']) > 3) $final['post_op'] = array_slice($final['post_op'], 0, 3);
 
     $final['generated_at'] = time();
 
-    // ذخیره
-    $data = shec_get_data($uid);
+    shec_log('finalize:final_payload_after_merge', $final);
+
+    // 11) ذخیره نهایی
+    $data = shec_get_data($uid); // تازه‌ترین نسخه
     if (!isset($data['ai'])) $data['ai'] = [];
     $data['ai']['final'] = $final;
     shec_update_data($uid, $data);
 
-    // صدور لینک عمومی
+    // 12) صدور لینک عمومی + اعلان
     $pub = shec_public_link_issue($uid, 180);
+    shec_log('finalize:public_link', $pub);
 
-    // TELEGRAM NOTIFY
+    // اعلان تلگرام (اگر فعال است)
     shec_notify_admin_telegram($uid, $pub['url']);
 
-    wp_send_json_success([
-      'ai_result'       => wp_json_encode($final, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
-      'user'            => $data,
-      'public_url'      => $pub['url'],
-      'public_expires'  => $pub['expires'],
-      'token'           => $pub['token'],
-    ]);
+    // 13) خروجی سازگار با فرانت (ai_result را رشته JSON نگه داریم)
+    $resp_out = [
+      'ai_result'      => wp_json_encode($final, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+      'user'           => $data,
+      'public_url'     => $pub['url'],
+      'public_expires' => $pub['expires'],
+      'token'          => $pub['token'],
+    ];
+    shec_log('finalize:response_to_front', $resp_out);
+
+    wp_send_json_success($resp_out);
   }
 }
-add_action('wp_ajax_shec_finalize','shec_finalize');
-add_action('wp_ajax_nopriv_shec_finalize','shec_finalize');
+add_action('wp_ajax_shec_finalize',        'shec_finalize');
+add_action('wp_ajax_nopriv_shec_finalize', 'shec_finalize');
 
 /* ---------------------------------
  * PUBLIC: get result by token (no nonce)
@@ -1234,6 +1349,82 @@ add_action('wp_ajax_nopriv_shec_result_by_token', 'shec_result_by_token');
 if (!function_exists('shec_result_viewer_shortcode')) {
 function shec_result_viewer_shortcode($atts = []) {
 
+  ?>
+  <script>
+    (function(){
+      if (typeof window.heRenderAllWarnings === 'function') return;
+
+      window.HE_WARNINGS = {
+        diabetes:    "اگر دچار دیابت هستید، کاشت مو تنها در صورتی ممکن است که بیماری تحت کنترل کامل باشد. دیابت می‌تواند بر روند بهبودی تأثیر بگذارد و خطر عفونت پس از جراحی را افزایش دهد. قبل از کاشت، تأییدیه کتبی پزشک معالج لازم است.",
+        coagulation: "کاشت مو در بیماران مبتلا به اختلالات انعقاد خون ممکن است دشوار باشد و خونریزی را در طول عمل افزایش دهد و بر بقای گرافت‌ها تأثیر بگذارد. تأییدیه کتبی پزشک معالج لازم است.",
+        cardiac:     "کاشت مو با وجود بیماری‌های قلبی/عروقی تنها در صورتی ممکن است که بیماری تحت کنترل کامل باشد و ممکن است ریسک داروی بی‌حسی و نقاهت بالاتر برود. تأییدیه کتبی پزشک لازم است.",
+        thyroid:     "کاشت مو برای اختلالات تیروئید در صورت متعادل بودن سطح هورمون‌ها امکان‌پذیر است؛ حالت کنترل‌نشده می‌تواند بر رشد مو و بقای گرافت‌ها اثر بگذارد. تأییدیه کتبی پزشک لازم است.",
+        immunodef:   "برای نقص سیستم ایمنی (مانند برخی موارد HIV یا شیمی‌درمانی) معمولاً کاشت توصیه نمی‌شود؛ بهبودی کندتر و عوارض بیشتر است. تصمیم نهایی با ارزیابی تخصصی و تأیید پزشک است.",
+        autoimmune:  "در بیماری‌های خودایمنی، بسته به نوع و فعالیت بیماری، کاشت ممکن است دشوار یا غیرقابل انجام باشد و روی پذیرش گرافت‌ها اثر بگذارد. ارزیابی تخصصی و تأیید پزشک لازم است."
+      };
+      window.HE_SCALP_WARNINGS = {
+        active_infection: "اگر عفونت فعال پوست سر دارید نمی‌توان بلافاصله برای کاشت مو اقدام کرد؛ ابتدا باید کامل درمان شود تا ریسک عارضه و کاهش بقای گرافت پایین بیاید.",
+        psoriasis:        "اگر پسوریازیس فعال است—خصوصاً با درگیری وسیع—ابتدا کنترل/درمان لازم است؛ سپس دربارهٔ کاشت تصمیم می‌گیریم.",
+        fungal_derm:      "قبل از در نظر گرفتن کاشت مو، درماتیت سبورئیک/عفونت قارچی باید کنترل شود؛ التهاب فعال شانس موفقیت را کم می‌کند.",
+        folliculitis:     "در صورت فولیکولیت، ابتدا درمان عفونت/التهاب انجام می‌شود؛ سپس می‌توان برای کاشت اقدام کرد.",
+        areata:           "کاشت مو در فاز فعال آلوپسی آره‌آتا (ریزش سکه‌ای) توصیه نمی‌شود؛ ابتدا باید بیماری غیرفعال شود.",
+        scarring_alo:     "آلوپسی اسکارینگ می‌تواند موفقیت پیوند را کم کند؛ تصمیم‌گیری پس از ارزیابی تخصصی و پایدار بودن ضایعات انجام می‌شود.",
+        scar:             "وجود اسکار روی پوست سر ممکن است درصد موفقیت را کاهش دهد؛ ارزیابی تراکم خون‌رسانی محل ضروری است."
+      };
+      window.heMapLabelToWarningKey = function(label){
+        if(!label) return null;
+        var t = String(label);
+        if (t.indexOf('دیابت') > -1) return 'diabetes';
+        if (t.indexOf('انعقاد') > -1) return 'coagulation';
+        if (t.indexOf('قلب')    > -1) return 'cardiac';
+        if (t.indexOf('تیروئید')> -1) return 'thyroid';
+        if (/(ایمنی|HIV|شیمی)/.test(t)) return 'immunodef';
+        if (/(خودایمنی|لوپوس|آلوپسی)/.test(t)) return 'autoimmune';
+        return null;
+      };
+      window.heMapScalpLabelToKey = function(label){
+        if(!label) return null;
+        var t = String(label);
+        if (t.indexOf('عفونت فعال پوست سر') > -1)                 return 'active_infection';
+        if (t.indexOf('پسوریازیس') > -1)                           return 'psoriasis';
+        if (t.indexOf('عفونت قارچی') > -1 || t.indexOf('سبورئیک')>-1) return 'fungal_derm';
+        if (t.indexOf('فولیکولیت') > -1)                           return 'folliculitis';
+        if (t.indexOf('ریزش سکه‌ای') > -1 || t.indexOf('آلوپسی آره‌آتا')>-1) return 'areata';
+        if (t.indexOf('آلوپسی به همراه اسکار') > -1)              return 'scarring_alo';
+        if (t.indexOf('جای زخم') > -1 || t.indexOf('اسکار') > -1)  return 'scar';
+        if (t.indexOf('هیچکدام') > -1)                             return null;
+        return null;
+      };
+      window.heRenderAllWarnings = function(opt){
+        opt = opt || {};
+        var systemicLabels = Array.isArray(opt.systemicLabels) ? opt.systemicLabels : [];
+        var scalpLabels    = Array.isArray(opt.scalpLabels)    ? opt.scalpLabels    : [];
+        var anchorSel      = opt.anchor || '#he-medical-warning-wrap';
+        var host = document.querySelector(anchorSel);
+        if (!host) return;
+        host.innerHTML = '';
+
+        var sysKeys = Array.from(new Set(systemicLabels.map(window.heMapLabelToWarningKey).filter(Boolean)));
+        sysKeys.forEach(function(k){
+          var div = document.createElement('div');
+          div.className = 'he-warn-card';
+          div.innerHTML = '<p>' + (window.HE_WARNINGS[k] || '') + '</p>';
+          host.appendChild(div);
+        });
+
+        var scalpKeys = Array.from(new Set(scalpLabels.map(window.heMapScalpLabelToKey).filter(Boolean)));
+        scalpKeys.forEach(function(k){
+          var div = document.createElement('div');
+          div.className = 'he-warn-card';
+          div.innerHTML = '<p>' + (window.HE_SCALP_WARNINGS[k] || '') + '</p>';
+          host.appendChild(div);
+        });
+
+        host.style.display = (host.children.length ? '' : 'none');
+      };
+    })();
+  </script>
+  <?php
   $calc_url = '';
   if ($p = get_page_by_path('hair-graft-calculator')) {
     $calc_url = get_permalink($p->ID);
@@ -1368,6 +1559,20 @@ function shec_result_viewer_shortcode($atts = []) {
       box.innerHTML = '<div style="padding:24px">توکن پیدا نشد.</div>';
       return;
     }
+      var splitFa = function(str){
+      if (!str || typeof str !== 'string') return [];
+      // حذف فاصله صفر‌عرض/جهت‌دهنده‌ها
+      str = str.replace(/[\u200c\u200f\u200e]/g,'');
+      // یکنواخت‌سازی جداکننده‌ها: ویرگول فارسی/انگلیسی، سِمی‌کالن، خط جدید
+      str = str.replace(/\s*[,،;]\s*|\r?\n+/g, '، ');
+      // حذف فاصله‌های اضافی و ویرگول‌های ابتدا/انتهای رشته
+      str = str.replace(/\s{2,}/g,' ').replace(/^(،\s*)+|(،\s*)+$/g,'');
+      return str.split(/،\s*/g).map(function(s){ return s.trim(); }).filter(Boolean);
+    };
+    var joinFa = function(arr){
+      return (Array.isArray(arr) && arr.length) ? arr.join('، ') : '—';
+    };
+
 
     fetch(shec_ajax.url, {
       method: 'POST',

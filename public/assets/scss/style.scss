@@ -883,6 +883,15 @@ select{
 
 /* باکس نگرانی */
 .ai-note{
+  background:#f2f6ff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:16px;
+  text-align:center;
+  margin-top:6px;
+}
+
+.ai-content{
   background:#f8fafc;
   border:1px solid #e5e7eb;
   border-radius:12px;
