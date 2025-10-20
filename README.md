@@ -1,208 +1,229 @@
-# 🧑‍⚕️ Hair Transplant Estimator – Multi-Step AI Consultation Form
+Smart Hair Graft Calculator (WordPress Plugin)
 
-This project is a **multi-step form** that allows users to receive an AI-powered consultation for hair transplant procedures. By answering a few questions and uploading images, the system analyzes the data using **OpenAI GPT** and provides:
+Current Version: from code
 
-* The **recommended hair transplant technique** .
-* An **estimated number of grafts** required.
-* A **professional medical analysis**.
+The Smart Hair Graft Calculator plugin provides a multi-step (wizard-style) form to estimate the number of hair transplant grafts.
+It stores user data step by step, generates a final result (optionally using OpenAI integration), and can create a public result link.
+The front-end is built with jQuery and Bootstrap, fully supporting RTL layouts, while the backend uses native WordPress architecture.
 
----
+This README was generated from the actual uploaded source code — reflecting the real shortcodes, hooks, database tables, options, and admin modules.
 
-## 🚀 Features
+✨ Key Features
 
-* Interactive **multi-step form** with a modern and responsive UI
-* **Step-by-step data saving** to the database
-* **Image uploads** for different angles of the scalp
-* **Medical and concern questionnaire**
-* **OpenAI GPT integration** for expert analysis
-* Automatic **graft estimation** stored in the database
-* **PDF report generation** with jsPDF
-* **Simple MVC architecture** (lightweight, no heavy frameworks)
-* AJAX and LocalStorage-based **step navigation**
-* Use Composer
----
+Multi-step (1–5 steps) AJAX form with optional AI-generated follow-up questions and final analysis
 
-## 🛠️ Tech Stack
+Step-by-step data persistence in a dedicated database table
 
-* **Backend:** PHP (Custom MVC Pattern)
-* **Frontend:** HTML5, SCSS (CSS3), JavaScript (jQuery)
-* **Database:** MySQL
-* **AI Integration:** [OpenAI PHP Client](https://github.com/openai-php/client)
-* **PDF Generation:** jsPDF
-* **Architecture:** MVC (Model–View–Controller)
+Generates a unique public result link (token) for each submission
 
----
+Two shortcodes for displaying both the form and the result view
 
-## 🏗️ Project Structure
+Full RTL and i18n translation support (languages/ folder)
 
-```
-app/
-│── Controllers/
-│   └── EstimatorController.php     # Main controller for form handling
-│
-│── Models/
-│   ├── User.php                    # User base information
-│   ├── UserMeta.php                 # User metadata (city, concerns, etc.)
-│   ├── hair_pic.php                  # Uploaded hair images
-│   └── Diagnosis.php                # AI analysis and graft results
-│
-Core/
-│   ├── Controller.php               # Base controller class
-│   ├── Router.php                   # App router
-│   └── OpenAIService.php            # OpenAI API service
-│
-public/
-│   ├── uploads/                     # Uploaded user images
-│   ├── assets/
-│   │   ├── css/                     # Stylesheets
-│   │   └── js/                      # JavaScript (form.js)
-│   └── index.php                    # Entry point
-│
-views/
-│   └── estimator/
-│       └── form.php                  # Multi-step form template
-│
-.env                                  # Environment settings (API Key, DB)
-```
+Integrates popular frontend libraries: Bootstrap, Toastr, html2canvas, jsPDF, Lottie
 
----
+Dedicated Admin Menu for data management and plugin settings
 
-## 🗂️ File Descriptions
+Built-in OpenAI (Chat Completions or Assistants API) integration
 
-* **EstimatorController.php** – Handles all steps (Step 1–5), image upload, OpenAI prompt creation, result storage, and rendering.
-* **User.php** – Manages basic user data (name, mobile, gender, age).
-* **UserMeta.php** – Stores user metadata (city, state, concerns, medical conditions).
-* **hair_pic.php** – Handles uploaded images.
-* **Diagnosis.php** – Stores final AI recommendations and graft count.
-* **OpenAIService.php** – Communicates with OpenAI GPT API.
-* **form.js** – Controls frontend step navigation, AJAX requests, image uploads with progress bar, displays AI results, and PDF generation.
-* **form.php** – Main HTML template with multi-step structure (Intro → Pattern selection → Image upload → Medical questions → Contact info → AI result).
-* **SCSS/CSS** – Modern and responsive styles for each step.
+Optional SMS (IPPanel Edge) and Telegram Bot notification modules
 
----
+⚙️ Installation & Setup
 
-## 🧠 Workflow
+Upload the plugin to wp-content/plugins/hair-estimator or install via the WordPress Plugins page.
 
-1. **Step 0** → Introduction and tool disclaimer
-2. **Step 1** → Gender and age selection → Creates initial user record
-3. **Step 2** → Select hair loss pattern
-4. **Step 3** → Upload images of scalp (optional)
-5. **Step 4** → Medical and concern questionnaire
-6. **Step 5** → Contact and final info
+Activate the plugin. On first activation:
 
-   * Collects all user data
-   * Builds a structured AI prompt
-   * Calls GPT model for expert consultation
-   * Estimates graft count and stores in `Diagnosis`
-7. **Step 6** → Displays AI analysis and graft count + Download PDF button
+Custom database tables are created.
 
----
+Default pages are automatically generated (if missing):
 
-## 🧾 Database Schema
+/hair-graft-calculator/ → [smart_hair_calculator]
 
-### `users`
+/hair-result/ → [smart_hair_result]
 
-| Column      | Description       |
-| ----------- | ----------------- |
-| id          | User ID           |
-| first\_name | First name        |
-| last\_name  | Last name         |
-| gender      | Gender            |
-| age         | Age               |
-| mobile      | Mobile number     |
-| created\_at | Created timestamp |
+Rewrite rules for the public result path are registered.
 
-### `user_meta`
+Go to the AI admin menu → Settings to configure API keys and prompts.
 
-| Column      | Description              |
-| ----------- | ------------------------ |
-| id          | Meta ID                  |
-| user\_id    | User ID                  |
-| meta\_key   | Key (concern, city, ...) |
-| meta\_value | Value                    |
-| type        | Data type                |
-| created\_at | Created timestamp        |
+Multisite installations are supported — database tables are created per site.
 
-### `hair_pics`
+🧩 Shortcodes
+Shortcode	Description
+[smart_hair_calculator]	Displays the multi-step hair graft estimation form
+[smart_hair_result]	Displays a user’s result page based on their token
 
-| Column      | Description        |
-| ----------- | ------------------ |
-| id          | Picture ID         |
-| user\_id    | User ID            |
-| file        | File path          |
-| position    | Image angle        |
-| created\_at | Uploaded timestamp |
+You can embed these shortcodes into any page or post.
 
-### `diagnosis`
+🧠 Admin Menu
 
-| Column       | Description              |
-| ------------ | ------------------------ |
-| id           | Diagnosis ID             |
-| user\_id     | User ID                  |
-| method       | Recommended method (FIT) |
-| graft\_count | Estimated graft count    |
-| branch       | Branch (default: Tehran) |
-| ai\_result   | AI analysis text         |
-| created\_at  | Stored timestamp         |
+A new AI section is added to the WordPress Dashboard:
 
----
+Data List — displays user entries in a DataTable with links to details
 
-## 🔑 OpenAI Integration
+Data Details — shows all collected form fields and AI results
 
-* API Key is stored in `.env`
-* Uses official **openai-php/client**
-* Sends a **structured medical prompt**:
+Settings — configure API keys, prompts, modes, and debugging options
 
-```json
-{
-  "method": "FIT",
-  "graft_count": 3000,
-  "analysis": "Medical and professional hair transplant advice."
-}
-```
+RTL layout and Shabnam font are included for an improved admin experience.
 
-* Graft count and analysis are saved directly in the database for reporting and PDF.
+⚙️ Plugin Options
 
----
+The plugin stores settings in WordPress options:
 
-## 🎨 Frontend Design
+shec_api_key – OpenAI API key
 
-* Primary color: Orange `#ff6600`
-* Rounded buttons with `18px` radius
-* Dynamic progress bar
-* Card-based form with soft shadows and white background
-* Fully responsive (mobile and tablet optimized)
-* Modular SCSS with variables and reusable styles
+shec_asst_enable – Enable Assistants mode instead of Chat Completions
 
----
+shec_asst_qs_id, shec_asst_final_id – Assistant IDs for question/final steps
 
-## 🔧 Modifying and Extending
+shec_prompt_questions, shec_prompt_final – Custom prompts for Chat Completions
 
-* **Add new steps:** Add method to `EstimatorController` + update `form.js`
-* **Change AI behavior:** Modify `buildPrompt` in `EstimatorController`
-* **Add fields:** Update `UserMeta` + form inputs
-* **Multilingual support:** Translate `views` and `form.js`
-* **PDF styling:** Update jsPDF generation in `form.js`
+shec_telegram_api, shec_admin_chat_id, shec_tg_secret – Telegram Bot settings
 
----
+shec_sms_api – IPPanel Edge SMS API key
 
-## ⚙️ Installation
+shec_debug – Enable verbose logging/debug mode
 
-1. Clone repository:
+Some settings can also be provided via .env or environment variables.
 
-   ```bash
-   git clone https://github.com/yourusername/hair-transplant-estimator.git
-   ```
-2. Configure `.env` with database credentials and OpenAI API Key.
-3. Run database migrations or import the provided SQL schema.
-4. Launch the project on a PHP server (e.g., XAMPP).
-5. Open the browser at `http://localhost/`.
+🗄️ Database Structure
+Table: wp_shec_users
 
----
+Stores each submission and user’s data:
 
-## 📄 License
+CREATE TABLE wp_shec_users (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  wp_user_id BIGINT UNSIGNED DEFAULT NULL,
+  data LONGTEXT NOT NULL,
+  created DATETIME DEFAULT CURRENT_TIMESTAMP,
+  KEY wp_user_id (wp_user_id)
+);
 
-This project is licensed under the MIT License.
+Table: wp_shec_links
 
----
+Stores public share tokens:
 
+CREATE TABLE wp_shec_links (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  wp_user_id BIGINT UNSIGNED NOT NULL,
+  token_hash CHAR(64) NOT NULL UNIQUE,
+  created DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires DATETIME NULL,
+  is_active TINYINT(1) DEFAULT 1,
+  KEY wp_user_id (wp_user_id)
+);
+
+🌐 Public Result Path
+
+Custom rewrite rule for /r/{TOKEN}
+
+shec_token query var automatically registered
+
+[smart_hair_result] shortcode renders the public result view
+
+Tokens can expire or be deactivated (expires, is_active columns)
+
+🔁 AJAX Endpoints
+
+Endpoints are registered for both logged-in and guest users:
+
+shec_step1 → shec_step5 – progressive data submission
+
+shec_ai_questions – generates AI-based follow-up questions
+
+shec_finalize – generates final analysis & issues a result token
+
+shec_result_by_token – retrieves result data via token
+
+Security:
+Each request checks a nonce (bypassed only for localhost/DEBUG mode).
+
+🎨 Frontend Assets
+
+JS: public/assets/js/form.js (jQuery-based logic)
+
+CSS: public/assets/scss/style.css (+ RTL version)
+
+Uses CDN libraries: Toastr, html2canvas, jsPDF, Lottie
+
+JavaScript strings can be localized using wp_set_script_translations
+
+To ensure a clean user experience, the plugin hides the theme header/footer and disables conflicting scripts on the form page.
+
+🔗 Token & Sharing
+
+Each finalized record generates a unique token accessible via /r/{TOKEN}.
+The link can be shared via SMS or Telegram if those modules are configured.
+
+🛡️ Security
+
+Nonce validation on all AJAX requests
+
+Input normalization (e.g., phone numbers)
+
+File upload validation recommended (type/size)
+
+Recommendations:
+
+Disable nonce bypass in production.
+
+Implement rate-limiting or CAPTCHA for public forms.
+
+Manage token expiration (expires / is_active).
+
+📁 Folder Structure
+hair-estimator/
+  hair-estimator.php           # Main plugin file (activation, enqueue, rewrite)
+  includes/
+    helpers.php                # Shortcode definitions + utility functions
+    admin/
+      admin-hair.php           # Admin menu, data list/detail pages, settings
+    graft-estimator/
+      ajax-handlers.php        # AJAX endpoints, OpenAI integration, token logic
+    tools/
+      telegram.php             # Telegram bot (optional)
+      sms.php                  # SMS integration (optional)
+  templates/
+    form-template.php          # Multi-step form markup
+  public/
+    assets/
+      js/form.js
+      scss/style.css
+      img/...
+  languages/                   # Translation files (.po/.mo/.json)
+  composer.json / package.json
+
+🧑‍💻 Development Notes
+
+Modify JS/CSS and recompile assets under public/assets/.
+
+Text domain: smart-hair-calculator
+
+Debug option (shec_debug) enables verbose output.
+
+Suggested Improvements
+
+Migrate the frontend to React + Vite + TypeScript (with REST + nonce)
+
+Stronger client-side validation (React Hook Form + Zod)
+
+Optional chunked image uploads
+
+Add rate-limit/CAPTCHA
+
+Add unit & integration tests
+
+🧹 Uninstall
+
+A uninstall.php file is recommended to clean up:
+
+Tables: wp_shec_users, wp_shec_links
+
+All plugin options (shec_*)
+
+(Currently not included.)
+
+📄 License
+
+Specify your license here — e.g., MIT or GPL-2.0-or-later.
