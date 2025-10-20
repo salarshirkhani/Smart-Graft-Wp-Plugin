@@ -1,0 +1,24 @@
+{
+  "name": "estimator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:install": "playwright install",
+    "test:e2e:local": "cross-env E2E_BASE_URL=http://localhost/fakhra/hair-graft-calculator playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@lottiefiles/dotlottie-web": "^0.50.0",
+    "bootstrap": "^5.3.7",
+    "sass": "^1.89.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  }
+}

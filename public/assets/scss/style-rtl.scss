@@ -1,0 +1,1464 @@
+@use 'base';
+$primary-color: #ff6600;
+$border-radius: 10px;
+$bg-default: #f5f5f5;
+.step {
+  display: none;
+
+  &.active {
+    display: block;
+  }
+}
+
+body {
+  font-family: "IRANSansWeb", sans-serif;
+  background: #F8F7F3 !important;   /* بک‌گراند اصلی را می‌بریم روی لایهٔ ثابت */
+  direction: rtl;
+}
+.bg-or{
+  background-color: #ff6600;  
+}
+.btn{
+    width: 198px;
+    height: 48px;
+    margin-left: auto;
+    margin-right: auto;
+    align-items: center;
+    background-color: #FF5A00 !important;
+    border: 1px solid #FF5A00 !important;
+    color: var(--Grayscale-4, #F4F6F5) !important;
+    text-align: center;
+    font-family: inherit;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    border-radius: 18px;
+}
+
+select{
+  background-color: #ffffff !important; // خاکستری روشن
+  border: 1px solid #ccc !important;    // بوردر خاکستری
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 15px;
+  color: #333;
+  transition: all 0.3s ease;
+  &:focus {
+    background-color: #ffffff !important;       // وقتی فوکوس شد سفید بشه
+    border-color: #ff6600 !important;           // نارنجی پروژه
+    outline: none;                   // حذف خط آبی مرورگر
+    box-shadow: 0 0 5px rgba(255, 102, 0, 0.4); // افکت ملایم
+  }
+}
+
+.btn-prev{
+    clear: both;
+    display: block;
+    background-color: #fff !important;
+    color: #FF5A00 !important;
+    border: none !important;
+    &:hover {
+        cursor: pointer;
+        color:#000000;
+    }
+}
+
+.centrilized {
+    display: flex !important;
+    gap: 16px;
+    flex-direction: column-reverse;
+}
+
+        .toggle-group {
+            display: flex;
+            gap: 20px;
+            direction: rtl;
+            margin:20px 0px;
+        }
+
+        .toggle-option {
+            cursor: pointer;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+            background: #f8f8f8;
+
+            span {
+                font-weight: bold;
+                color: #555;
+            }
+
+            input:checked + span,
+            &.active {
+                border-color: #ff6600;
+                background-color: #fff3e6;
+                color: #ff6600;
+            }
+        }
+.flexy{
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  align-content: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+#step-container{
+    align-content: space-between;
+    border-radius: 20px;
+    margin: 0 auto;
+    padding: 10px;
+    background: linear-gradient(135deg, rgba(247, 247, 247, 0.88) 10%, rgba(255, 255, 255, 0.45) 90%);
+    border: 1.5px solid rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    outline: none !important;
+    width: 700px;
+    #step-0{
+    
+        h3{
+            line-height: 38px;
+            text-align: center;
+            padding-bottom: 23px;
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: bold;
+            border-bottom: 1px solid #CDCFCE;
+        }
+
+        .description {
+            color: #333;
+            font-family: inherit;
+            font-size: 16px;
+            font-style: normal;
+            font-weight: 500;
+            line-height: 1.8;
+            text-align: justify;
+            margin-bottom: 24px;
+            direction: rtl;
+            letter-spacing: -0.02em;
+        }
+        .form-question {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #2b2b2b;
+            margin-bottom: 0.75em;
+            padding: 0.5em 0;
+        }
+        .header-box {
+            height: 300px;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 20px;
+            background-position: center;
+            background-size: cover;
+            position: relative;
+            background-repeat: no-repeat;
+            background-image: url(https://padra.com/wp-content/uploads/2025/04/Slide-1-C-min.png);
+        }
+    }
+
+    #step-1{
+        padding:10px;
+        label{
+            text-align: right;
+            font-size: 15px;
+        }
+        input{
+            padding: 10px;
+            border: 1px solid #ddd;
+            direction: rtl;
+            border-radius:5px;
+            width:100%;
+        }
+        .g-box{
+            margin: 31px auto;
+            margin-bottom: 65px;
+            justify-content: space-between;
+            padding: 20px 5px 50px 5px !important;
+            border-bottom: 1px solid #CDCFCE;
+        }
+
+        .a-box{
+            margin: 31px auto;
+            justify-content: space-between !important;
+            margin-bottom: 65px;
+            padding: 14px 0px 25px !important;
+        }
+
+        .gender-option {
+            display: inline-block;
+            font-weight: 700;
+            font-size: 16px;
+            width: 100%;
+            cursor: pointer;
+
+            .hidden-radio {
+                display: none;
+            }
+
+            .option-box {
+                border: 1px solid #ddd;
+
+                border-radius: 10px;
+                background: #f5f5f5;
+                padding: 10px 25px;
+                display: flex;
+                align-items: center;
+                transition: all 0.3s ease;
+                justify-content: space-between;
+                flex-wrap: nowrap;
+                flex-direction: row;
+                img {
+                width: 60px;
+                height: 60px;
+                filter: grayscale(100%);
+                transition: filter 0.2s ease;
+                &.selected {
+                    filter: none;  
+                  }
+                }
+                &.selected {
+                    filter: none; 
+                }
+
+                span {
+                color: #555;
+                font-weight: 700;
+                margin-left: 20px;
+                font-size: 17px;
+                transition: all 0.3s ease;
+                }
+            }
+
+        // SELECTED
+            .hidden-radio:checked + .option-box {
+                border-color: $primary-color;
+
+                span {
+                color: $primary-color;
+                font-weight: bold;
+                }
+
+                img{
+                filter: none;
+                }
+
+            }
+        }
+
+        .age-option {
+            display: inline-block;
+            margin: 0 10px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+
+            // input مخفی ولی انتخاب‌پذیر
+            .hidden-radio {
+                display: none;
+            }
+
+            .option-box {
+
+                border: 1px solid #000000;
+                border-radius: 10px;
+                background: #ffffff;
+                padding: 16px 18px;
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                transition: all 0.3s ease;
+
+                img {
+                width: 60px;
+                height: 60px;
+                filter: grayscale(100%);
+                transition: filter 0.2s ease;
+                &.selected {
+                    filter: none;  
+                  }
+                }
+                &.selected {
+                    filter: none; 
+                }
+
+                span {
+                color: #1e1e1e;
+                font-weight: 700;
+                font-size: 17px;
+                transition: all 0.3s ease;
+                }
+            }
+
+        // SELECTED
+            .hidden-radio:checked + .option-box {
+                border-color: $primary-color;
+                background: $primary-color;
+                span {
+                color: #ffffff;
+                font-weight: bold;
+                }
+
+            }
+        }
+    }
+
+    #step-2{
+        padding:10px;
+        label{
+            text-align: right;
+            font-size: 15px;
+        }
+          .pattern-option {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+
+            &:hover {
+            background-color: #f8f9fa;
+            }
+
+           // &.selected {
+
+         //   }
+        }
+
+        .pattern-img {
+            max-height: 130px;
+            object-fit: contain;
+            transition: filter 0.3s ease;
+        }
+        .pattern-option img {
+          filter: grayscale(100%);
+          transition: filter 0.2s ease;
+        }
+        .pattern-option.selected img {
+          filter: none;
+        }
+                        
+    }
+
+    #step-3{
+        padding:10px;
+        label{
+            text-align: right;
+            font-size: 15px;
+            border-bottom: 1px solid #CDCFCE;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .container-image {
+            padding: 18px 28px;
+            fill: var(--Grayscale-4, #FFF);
+            box-shadow: 0px 0px 15px #00000015;
+            border-radius: 0 0 50px 50px;
+            margin-bottom: 25px;
+        }
+        .subheading0-image {
+            color: var(--Grayscale-2, #121212);
+            font-family: inherit;
+            font-size: 18px;
+            font-style: normal;
+            font-weight: 400;
+            line-height: normal;
+            margin:20px 0px;
+            text-align: start;
+            direction: rtl;
+        }
+        .description-image {
+            margin-bottom: 20px;
+            text-align: right;
+            line-height: 1.8;
+
+            .privacy-note{
+                margin-top: 1.5em;
+                background: #ff5a0014;
+                padding: 1em;
+                border-radius: 8px;
+                font-size: 0.95rem;
+                color: #333;
+            }
+        }
+        .angles {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            .angle {
+                width: 143px;
+                border-radius: 30px;
+                overflow: hidden;
+                img {
+                    border: none;
+                    border-radius: 0;
+                    box-shadow: none;
+                    height: auto;
+                    max-width: 100%;
+                }
+            }
+        }
+        .upload-box {
+            background: rgba(223, 240, 255, 0.13);
+            border: 1px dashed $primary-color;
+            border-radius: 8px;
+            color: #555;
+            display: block;
+            padding: 35px;
+            text-align: center;
+            transition: all 0.2s ease;
+            width: 100%;
+            cursor: pointer;
+
+            span {
+                display: block;
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 8px;
+            }
+
+            input[type="file"] {
+                display: none;
+            }
+
+            .progress {
+                height: 4px;
+                margin-top: 8px;
+                background: #eee;
+
+                .progress-bar {
+                background-color: $primary-color;
+                }
+            }
+
+            .thumbnail {
+                width: 200px;
+                height: 200px;
+                margin-top: 10px;
+                border-radius: 6px;
+            }
+
+            // افکت hover
+
+        }   
+        .upload-success {
+                border: 1px solid #28a745; 
+                background: #ffffff;
+        }           
+    }
+
+    #step-4{
+        padding:10px;
+        label{
+            text-align: right;
+            font-size: 15px;
+        }
+        input{
+            padding: 10px;
+            border: 1px solid #ff6600;
+            direction: rtl;
+            border-radius:5px;
+            width:100%;
+        }
+        select{
+            margin:5px 0px;
+        }
+        #medical-fields{
+            margin: 24px 4px;
+            gap:20px;
+        }
+        #meds-fields{
+            margin: 24px 4px;
+            gap:20px;
+        }
+    }
+
+    #step-5{
+        padding:10px;
+        height:100%;
+        label{
+            text-align: right;
+            font-size: 15px;
+        }
+
+        input{
+            padding: 10px;
+            border: 1px solid #ff6600;
+            direction: rtl;
+            border-radius:5px;
+            margin:10px 0px;
+        }
+        select{
+            margin:5px 0px;
+        }
+    }
+
+    #step-6 {
+      padding: 20px;
+      text-align: right;
+
+      .result-box {
+        font-size: 15px;
+        line-height: 1.8;
+        color: #333;
+        margin-bottom: 20px;
+      }
+
+      .user-summary {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px 15px;
+
+        h5 {
+          color: #ff6600;
+          font-weight: bold;
+          margin-bottom: 10px;
+        }
+
+        ul {
+          padding: 0;
+          list-style: none;
+
+          li {
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #444;
+          }
+        }
+      }
+      .ai-result-container {
+
+        padding: 15px;
+ 
+
+        .method-text {
+          color: #ff6600;
+          font-weight: bold;
+        }
+
+        .analysis-text {
+          margin-top: 10px;
+          line-height: 1.8;
+          color: #333;
+          font-size: 15px;
+        }
+
+        .graft-count-box {
+          margin-top: 15px;
+          background: #fff3e6;
+          border: 2px solid #ff6600;
+          border-radius: 10px;
+          padding: 10px;
+          text-align: center;
+          font-size: 16px;
+          font-weight: bold;
+          color: #333;
+        }
+      }
+
+    }
+    
+}
+
+  // --- استایل داخلی Steps شما (0 تا 5) بدون تغییر اینجا می‌مونه ---
+
+  // ---------- ریسپانسیو ----------
+  @media (max-width: 768px) {
+    #step-container {
+    border-radius: 10px;
+    box-shadow: 0 0 15px #00000021;
+    margin: 0 auto;
+    padding: 10px;
+    background-color: #ffffff !important;
+    outline: none !important;
+    max-width: 95%;
+    padding: 10px;
+
+    // جنسیت و سن دو ستونه تو تبلت
+    #step-1 {
+      .g-box,
+      .a-box {
+        display: grid !important;
+        gap: 10px;
+        align-items: center;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        padding: 0 !important;
+      }
+
+      .gender-option,
+      .age-option {
+        width: 45%;
+        margin-bottom: 10px;
+
+        .option-box {
+          justify-content: center;
+          width: 100%;
+        }
+      }
+    }
+
+    // الگوهای ریزش تو تبلت دو ستونه
+    #step-2 {
+      .pattern-option {
+        width: 48%;
+        margin-bottom: 15px;
+      }
+    }
+
+    // آپلود عکس‌ها دو ستونه تو تبلت
+    #step-3 {
+      .angles {
+        flex-wrap: wrap;
+        gap: 8px;
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+
+        .angle {
+          width: 100%;
+        }
+      }
+
+      #upload-zones {
+        .col-6,
+        .col-md-3 {
+          width: 50%;
+          max-width: 50%;
+        }
+      }
+    }
+
+    // toggle-group دو ستونه
+    .toggle-group {
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+
+      .toggle-option {
+        width: 48%;
+        text-align: center;
+      }
+    }
+
+    // فرم پایانی (نام، شهر و ... دوتایی)
+    #step-5 {
+      input,
+      select {
+        width: 48%;
+        margin-bottom: 10px;
+      }
+
+      input[name="mobile"] {
+        width: 100%;
+      }
+    }
+  }
+}
+
+  @media (max-width: 576px) {
+    #step-container {
+    border-radius: 10px;
+    box-shadow: 0 0 15px #00000021;
+    margin: 0 auto;
+    padding: 10px;
+    background-color: #ffffff !important;
+    outline: none !important;
+
+    max-width: 100%;
+    padding: 8px;
+
+    // جنسیت و سن ستونی تو موبایل
+    #step-1 {
+      .g-box,
+      .a-box {
+        display: grid !important;
+        gap: 10px;
+        align-items: center;
+        grid-template-columns: repeat(2, 1fr);
+        justify-content: space-between;
+        gap: 10px !important;
+        margin: 20px 0 !important;
+        padding: 0 !important;
+      }
+
+      .gender-option,
+      .age-option {
+        width: 100%;
+        margin: 0 !important;
+
+        .option-box {
+          justify-content: center;
+          width: 100%;
+        }
+      }
+    }
+
+    // آپلود عکس‌ها ستونی تو موبایل
+    #step-3 {
+      .angles {
+        flex-wrap: wrap;
+        gap: 8px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+
+        .angle {
+          width: 100%;
+        }
+      }
+
+      #upload-zones {
+        .col-6,
+        .col-md-3 {
+          width: 100%;
+          max-width: 100%;
+        }
+      }
+    }
+
+    // دکمه‌ها فول‌عرض
+    .btn,
+    .btn-prev {
+      width: 100%;
+    }
+
+    // toggle-group ستونی
+    .toggle-group {
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+
+      .toggle-option {
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    // فرم پایانی ستونی
+    #step-5 {
+      input,
+      select {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+    }
+  }
+
+}
+.toast {
+    background-color: #333 !important;
+    color: #fff !important;
+    font-size: 14px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+.toast-success {
+    background-color: #28a745 !important;
+}
+.toast-error {
+    background-color: #dc3545 !important;
+}
+.toast-info {
+    background-color: #17a2b8 !important;
+}
+.toast-warning {
+    background-color: #ffc107 !important;
+}
+/* استپ 5: لودر وسط صفحه با متن زیر اسپینر */
+/* لودر فول‌اسکرین وسط صفحه */
+#step5-loader{
+  position: relative;
+  inset: 0;
+  z-index: 9999;
+  display: none;                /* با JS روشن می‌شود */
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,.55), rgba(255,255,255,.35));
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+.bgl{
+    background: linear-gradient(135deg, rgba(247, 247, 247, 0.88) 10%, rgba(255, 255, 255, 0.45) 90%);
+}
+/* کارت محتوا داخل لودینگ */
+#step5-loader .ai-loader-card{
+  width: min(760px, 94vw);                /* اگر محتوا زیاد شد اسکرول فقط روی کارت */
+  border-radius: 16px;
+}
+
+/* اسکرول‌بار تمیز برای کارت (اختیاری) */
+#step5-loader .ai-loader-card{ scrollbar-width: thin; scrollbar-color: #e2a37a transparent; }
+#step5-loader .ai-loader-card::-webkit-scrollbar{ width:8px; }
+#step5-loader .ai-loader-card::-webkit-scrollbar-thumb{ background:#e2a37a33; border-radius:8px; }
+
+/* مرکزچینی آیتم‌های اصلی کارت */
+#step5-loader .container-image{
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+#step5-loader .ai-loader {
+  display: flex;
+  flex-direction: column; /* متن زیر اسپینر */
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+/* رزرو فضا برای تصاویر تا «جهش ارتفاع» کمتر شود */
+#step5-loader .why-padra-item{display:flex; gap:12px; align-items:flex-start; margin:8px 10px;}
+#step5-loader .why-padra-logo{width:46px; height:46px; object-fit:contain; flex:0 0 46px;}
+
+#step5-loader .spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e9e9e9;
+  border-top-color: #ff6600;
+  border-radius: 50%;
+  animation: shecSpin .8s linear infinite;
+}
+
+#ai-loader-text {
+  font-size: 14px;
+  line-height: 1.8;
+  margin-top: 15px;
+  color: #444;
+  text-align: center !important;
+  font-weight: 600;
+  opacity: 1;
+}
+
+#ai-loader-text.smooth { transition: opacity .25s ease; }
+
+@keyframes shecSpin {
+  to { transform: rotate(360deg); }
+}
+/* کانتینر کلی نتیجه */
+.ai-result-container{
+  direction: rtl;
+  font-family: inherit;
+  color:#111;
+}
+
+/* هدر نارنجی */
+.ai-hero{
+  background: var(--ai-accent);
+  color:#fff;
+  border-radius: 18px;
+  padding: 28px 20px 30px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* لوگو (دایره سفید) */
+.ai-hero .ai-logo{
+  width:84px;height:84px;
+  border-radius:50%;
+  background:#fff;
+  margin:0 auto 12px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.ai-hero .ai-logo img{ max-width:70%; height:auto; }
+
+/* تیک */
+.ai-hero .ai-check{
+  width:56px;height:56px;
+  border-radius:50%;
+  border:2px solid #fff;
+  display:flex;align-items:center;justify-content:center;
+  margin:12px auto 8px;
+  font-size:28px; line-height:1;
+}
+
+/* متن‌های هدر */
+.ai-hero .ai-title{ font-size:20px; font-weight:800; }
+.ai-hero .ai-sub{ opacity:.9; margin-top:6px; }
+
+/* بخش «اطلاعات شخصی شما» */
+.ai-section-title{ font-weight:800; font-size:18px; margin:22px 0 14px; }
+
+/* ردیفِ چیپ‌ها */
+.ai-chip-row{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:14px;
+}
+@media (max-width: 768px){
+  .ai-chip-row{ grid-template-columns:1fr; }
+}
+
+/* چیپ */
+.ai-chip{
+  background:#f3f4f6;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:14px 16px;
+  text-align:center;
+}
+.ai-chip .ai-chip-label{ color:#6b7280; font-size:13px; margin-bottom:6px; display:block; }
+.ai-chip .ai-chip-value{ font-weight:700; }
+
+/* باکس نگرانی */
+.ai-note{
+  background:#f2f6ff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:16px;
+  text-align:center;
+  margin-top:6px;
+}
+
+.ai-content{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:16px;
+  text-align:center;
+  margin-top:6px;
+}
+
+/* جداکننده */
+.ai-divider{ border:none; border-top:1px solid #e5e7eb; margin:22px 0; }
+
+/* سه کارت پایین */
+.ai-stats{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:14px;
+}
+@media (max-width:768px){ .ai-stats{ grid-template-columns:1fr; } }
+.ai-stat{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align:center;
+  box-shadow: 0 6px 18px rgba(0,0,0,.04);
+}
+.ai-stat .ai-stat-label{ color:#6b7280; margin-bottom:6px; }
+.ai-stat .ai-stat-value{
+  font-weight:800;
+  font-size:18px;
+  color:#1f2937;
+}
+.ai-stat--accent{
+  background:#fff7f2;
+  border-color:#ffd8bf;
+}
+.ai-stat--accent .ai-stat-value{ color:var(--ai-accent); }
+.ai-spinner-img{
+  width:100px;
+  height:100px;
+  margin:0 auto 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.ai-spinner-img img{
+  width:180px;
+  height:180px;
+  object-fit:contain;
+  animation: spinImage 1.2s linear infinite;
+}
+
+@keyframes spinImage {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.proposal-container {
+  background: #fff;
+  color: #000;
+  margin-top: 60px;
+  border-radius: 10px;
+}
+/* کانتینر نتیجه: عرض کنترل‌شده و وسط‌چین */
+#proposal-pdf-root.proposal-container{
+  position: relative;
+  box-sizing: border-box;
+  max-width: 980px;           /* عرض دلخواه صفحه‌ی نتیجه */
+  width: 100%;
+  margin: 44px auto;          /* وسط‌چین افقی */
+  padding: 0 16px;            /* حاشیه داخلی کم برای موبایل */
+}
+
+/* جلوگیری از وراثت پدینگ/کانسترِین تم گوتنبرگ روی ریشه‌ی ما */
+:where(.wp-block-post-content, .entry-content, .has-global-padding, .is-layout-constrained)
+  #proposal-pdf-root.proposal-container{
+    margin-right: auto !important;
+    margin-left:  auto !important;
+    max-width: 980px !important;
+}
+
+/* تصاویر/عناصر داخلی از کانتینر بیرون نزنند */
+#proposal-pdf-root.proposal-container *{
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* اگر از بک‌گراند ثابت با ::before استفاده کردی، تزاحم نداشته باشد */
+body::before{
+  pointer-events: none;   /* فقط پس‌زمینه؛ کلیک‌ها را نگیرد */
+  z-index: -1;            /* پشت محتوا بماند */
+}
+
+/* فقط داخل ناحیهٔ نتیجه */
+#proposal-pdf-root, #proposal-pdf-root * {
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  direction: rtl;
+  unicode-bidi: isolate;
+  /* برخی فیلترها رندر را خراب می‌کنند */
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  -webkit-text-stroke: 0 !important;
+}
+/* ===== Print-only styles ===== */
+@media print {
+  @page { size: A4; margin: 10mm; }                  /* سایز و حاشیه PDF */
+  html, body { height: auto !important; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* فونت فارسی برای چاپ */
+  @font-face {
+    font-family: 'Shabnam';
+    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam.woff2') format('woff2'),
+         url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam.woff') format('woff');
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Shabnam';
+    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam-Bold.woff2') format('woff2'),
+         url('https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/Shabnam-Bold.woff') format('woff');
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+
+  /* جهت و فونت برای چاپ */
+  #proposal-pdf-root { direction: rtl; font-family: Shabnam, Vazirmatn, Tahoma, sans-serif; }
+
+  /* فریم تمیز با پدینگ برای کل صفحه PDF */
+  #proposal-pdf-root {
+    width: 180mm;           /* کمی کمتر از عرض A4 برای نفسِ کناره‌ها */
+    margin: 0 auto;
+    background: #fff;
+  }
+  #proposal-pdf-root .pdf-frame {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12mm;          /* پدینگ واقعی روی PDF */
+    box-shadow: none !important;
+  }
+
+  /* رنگ‌های پس‌زمینه در چاپ (این‌ها را با کلاس‌های واقعی خودت مَچ کن) */
+  .result-hero { background: #ff6a00 !important; color:#fff !important; }
+  .card        { background: #f2f5f9 !important; }
+
+  /* چیزهای اضافی توی PDF نباشه */
+  .no-print, button, .btn, #download-pdf, #reset-form { display: none !important; }
+
+  /* جلوگیری از نصف شدن کارت‌ها بین صفحات */
+  .card, .result-hero, .analysis-box { break-inside: avoid; page-break-inside: avoid; }
+
+  /* لینک‌ها پسوند URL نگیرند */
+  a[href]:after { content: "" !important; }
+}
+.he-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px}
+@media(max-width:900px){.he-grid3{grid-template-columns:1fr}}
+.he-badge-card{background:#ff8a2b;color:#fff;border-radius:12px;padding:12px;text-align:center}
+.he-badge-title{opacity:.95;font-size:12px;margin-bottom:6px}
+.he-badge-value{font-size:22px;font-weight:800}
+
+.he-card{border:1px solid #ffd9b3;background:#fff7ef;border-radius:12px;padding:12px 14px;margin:12px 0}
+.he-note ul{margin:0;padding-inline-start:18px}
+
+.he-pills{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:12px 0}
+@media(max-width:900px){.he-pills{grid-template-columns:1fr}}
+.he-pill-title{margin-bottom:6px;color:#333;font-weight:700}
+.he-pill-wrap{display:flex;flex-wrap:wrap;gap:8px}
+.he-pill{background:#eee;border-radius:10px;padding:8px 10px;font-size:13px;color:#333}
+
+.he-warn-card{border:1px solid #f5c08a;background:#fff7ef;border-radius:12px;padding:12px;margin:12px 0}
+.he-warn-card p{margin:0;line-height:1.8;color:#444}
+
+.fit-timeline-title {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 48px;
+    color: #070707;
+    margin-bottom: 28px;
+    border-bottom: 3px solid #ff5a00;
+    display: inline-block;
+    padding-bottom: 10px;
+}
+
+.fit-timeline-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px #eee;
+}
+
+.fit-timeline-table thead {
+    background-color: #ff5a00;
+}
+
+.fit-timeline-table thead th {
+    padding: 13px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    text-align: center;
+}
+
+.fit-timeline-table td {
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #333;
+    background: #fdfdfd;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: right;
+}
+
+.fit-timeline-table tbody tr:nth-child(even) td {
+    background: #f7f7f7;
+}
+
+.fit-timeline-table tbody tr:last-child td {
+    background: #fff5ef;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .fit-timeline-wrapper {
+        padding: 20px;
+    }
+
+    .fit-timeline-title {
+        font-size: 18px;
+    }
+
+    .fit-timeline-table th,
+    .fit-timeline-table td {
+        font-size: 14px;
+        padding: 12px;
+    }
+    .g-box{
+
+            justify-content: center !important;
+
+    }
+
+
+}
+
+@media screen and (max-width: 390px) {
+    .fluentform .gender_wrrapper label.ff-el-image-input-src {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+.contact-info {
+    width: 100%;
+}
+
+
+.question-checkbox {
+    direction: rtl;
+}
+
+.question-checkbox label.ff-el-form-check-label {
+    display: flex;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.certainty-wrrapper {
+    direction: rtl;
+    margin-bottom: 50px;
+}
+
+.angle {
+    width: 143px;
+    border-radius: 30px;
+    overflow: hidden;
+}
+
+input#ff_9_phone {
+    direction: ltr !important;
+}
+
+.skin-disease-note,.underlying-disease-note {
+    margin-bottom: 30px;
+    margin-top: 30px;
+    padding: 15px;
+    border-radius: 10px;
+    background: #fff8f2;
+    border: 1px solid #ff5a00;
+    color: #333;
+    font-size: 14px;
+    line-height: 2;
+    direction: rtl;
+}
+option {
+    direction: rtl !important;
+}
+
+.why-padra-wrapper{
+  margin: 15px 0px;
+}
+
+.why-padra {
+    width: 100%;
+    text-align: end;
+    color: #000;
+    font-size: 17px;
+    font-weight: 400;
+    padding-top: 20px;
+    border-top: 1px solid #CDCFCE;
+    margin-bottom: 30px;
+}
+
+.why-padra-info-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+}
+.why-padra-info-description{
+    margin: 12px 0px;
+    font-size: 15px;
+}
+
+.why-padra-item {
+    align-items: center;
+    display: flex;
+    padding: 12px 8px;
+    background: white;
+    gap: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 15px #00000014;
+    border-radius: 15px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.why-padra-item:hover {
+    transform: scale(1.05);
+}
+
+.ai-scale-img img {
+  width: 80px; /* سایز دلخواه */
+  animation: pulseScale 10.5s infinite ease-in-out;
+}
+
+@keyframes pulseScale {
+  0%   { transform: scale(1);   opacity: 1; }
+  50%  { transform: scale(33.3); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+/* باکس هشدار؛ دسکتاپ = 20% آیکن + 80% متن */
+.he-warn-card{
+  display:flex;
+  align-items:stretch;
+  gap:16px;
+  padding:16px 18px;
+  border:1px solid #ffb37a;
+  background:#fff7f0;
+  border-radius:14px;
+  box-shadow:0 2px 10px rgba(255,102,0,.06);
+  position:relative;
+  direction:rtl;
+}
+
+/* متن: پررنگ و قرمز */
+.he-warn-card p{
+  margin:0;
+  color:#b3261e;                 /* قرمز متن */
+  font-weight:700;               /* Bold */
+  line-height:1.9;
+  flex:1 1 auto;                 /* 80% باقیمانده */
+  text-align:justify;
+}
+
+/* حالت موبایل: آیکن بالا، متن زیر آن */
+@media (max-width: 576px){
+  .he-warn-card{
+    flex-direction:column;
+    gap:10px;
+    padding:14px 16px;
+  }
+  .he-warn-card p{
+    font-size:0.95rem;
+  }
+}
+  .ai-qa{list-style:none;margin:0;padding:0}
+  .ai-qa-item{
+    background:#fff;border:1px solid #eef1f4;border-radius:14px;
+    padding:12px 14px;margin:10px 0;box-shadow:0 4px 14px rgba(0,0,0,.04)
+  }
+  .ai-qa-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+  .ai-qa-head .num{
+    flex:0 0 auto;width:28px;height:28px;border-radius:999px;
+    background:#f3f6f9;border:1px solid #e7ecf1;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px
+  }
+  .ai-qa-q{font-weight:700;line-height:1.9}
+  .ai-qa-a{display:flex;align-items:center;gap:8px;margin:6px 0 2px 0}
+  .ai-qa-a .label{opacity:.7}
+  .ai-qa-a .ans-pill{
+    padding:2px 12px;border-radius:999px;border:1px solid #e9edf2;background:#f8fafc;
+    font-weight:700
+  }
+  .ai-qa-a .ans-yes{color:#2b8a3e;background:#eaf7ef;border-color:#d6f0dd}
+  .ai-qa-a .ans-no{color:#c92a2a;background:#fff5f5;border-color:#ffd9d9}
+  .ai-qa-tip{
+    margin-top:8px;padding:10px 12px;border-radius:12px;
+    background:#f6f9ff;border:1px solid #e6efff
+  }
+  .ai-qa-tip .bot{margin-inline-start:2px;margin-inline-end:6px}
+
+  .glassing {
+      background: linear-gradient(135deg, rgb(237 235 228 / 23%) 10%, rgb(237 235 228 / 37%) 90%);
+      border: 1.5px solid rgba(255, 255, 255, 0.24);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+  }
+.shec-section {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s ease;
+}
+
+.shec-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* فقط یک مرز: بیرونی روی wrap */
+.upload-wrap{
+  position:relative;
+  border:1px solid transparent;
+  border-radius:10px;
+  padding:12px;
+}
+
+/* حالت موفق: فقط همین مرز سبز دیده شود */
+.upload-wrap.upload-success{
+  border-color:#22c55e;
+}
+
+/* مرز داخلی را در حالت موفق «مجبوراً» حذف کن */
+.upload-wrap.upload-success > .upload-box{
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  padding:0 !important;           
+}
+
+/* کادر داخلی پیش‌فرض (وقتی هنوز آپلود نشده) */
+.upload-box{
+  position:relative;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  background:#fff;
+  padding:16px;
+  text-align:center;
+  z-index:1;
+}
+
+/* وقتی آپلود شد: مرز داخلی را حذف کن تا دو تا بوردر نداشته باشیم */
+.upload-wrap.upload-success .upload-box{
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  padding:0;              /* اگر فاصله‌ات بهم می‌ریزد می‌توانی 8px بگذاری */
+}
+.upload-wrap.upload-success > .upload-box::before,
+.upload-wrap.upload-success > .upload-box::after{
+  content:none !important;
+  display:none !important;
+}
+/* تصویر */
+.upload-box .thumbnail{
+  display:block;
+  width:100%;
+  max-width:260px;
+  height:260px;
+  object-fit:cover;
+  border-radius:10px;
+  margin:10px auto 0;
+  image-orientation:from-image;
+}
+
+/* حالت خطای روبه‌رو: فقط مرز داخلی خط‌چین قرمز (مثل قبل) */
+.shec-upload-front.is-required-error > .upload-box{
+  border:2px dashed #ef4444 !important;
+  background:linear-gradient(180deg,#fff,#fffaf9) !important;
+  box-shadow:none !important;
+}
+.upload-box .err-msg{ margin-top:8px; font-size:13px; font-weight:600; color:#d32f2f }
+
+/* اوورلی حذف (همان قبل؛ برای کامل‌بودن) */
+.upload-overlay{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .2s; background:rgba(0,0,0,.25);
+  backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  pointer-events:none; z-index:2;
+}
+.upload-wrap.upload-success:hover .upload-overlay{ opacity:1; pointer-events:auto }
+.remove-btn{ border:0; border-radius:999px; padding:10px 12px; background:#ef4444; color:#fff; font-size:18px; cursor:pointer }
+
+
+.ai-loader{
+  position:relative; width:100%; min-height:260px;
+  border-radius:18px;
+  background: linear-gradient(135deg,#fff 0%, #fff7f3 40%, #ffe9df 100%);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: inset 0 6px 18px rgba(0,0,0,.06);
+  .container-image {
+      padding: 18px 28px;
+      fill: var(--Grayscale-4, #FFF);
+      box-shadow: 0px 0px 15px #00000015;
+      border-radius: 0 0 50px 50px;
+      margin-bottom: 25px;
+   }
+}
+.ai-loader--overlay{ position:fixed; inset:0; z-index:9999; backdrop-filter: blur(2px); }
+
+.ai-loader-card{ display:flex; flex-direction:column; align-items:right; gap:14px; text-align:right; padding:16px 12px; }
+.ai-ring-wrap{ position:relative; width:140px; height:140px; display: block; margin-left: auto; margin-right: auto;}
+.ai-ring{ width:140px; height:140px; transform: rotate(-90deg); }
+.ai-ring .ring-bg{ fill:none; stroke:#f3d7c9; stroke-width:12; stroke-linecap:round; }
+.ai-ring .ring-fg{
+  fill:none; stroke:#ff7a45; stroke-width:12; stroke-linecap:round;
+  stroke-dasharray:339.29; /* 2πr for r=54 */
+  stroke-dashoffset:339.29; /* start at 0% */
+  transition: stroke-dashoffset .25s ease;
+  filter: drop-shadow(0 2px 4px rgba(255,122,69,.30));
+}
+.ai-ring-label{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:28px; color:#222; }
+
+.ai-loader-title{ font-weight:800; font-size:22px; color:#222; margin-top:4px; }
+.ai-loader-text{ max-width:640px; color:#444; line-height:1.9; font-size:15px; }
+
+@media (max-width:480px){
+  .ai-ring-wrap,.ai-ring{ width:120px; height:120px; }
+  .ai-loader-title{ font-size:18px; }
+  .ai-loader-text{ font-size:14px; padding:0 10px; }
+}
